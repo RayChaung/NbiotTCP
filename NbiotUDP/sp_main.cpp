@@ -1,110 +1,112 @@
-//
-// Created by ray on 18年11月7日.
-//
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<algorithm>
-#include<errno.h>
-#include<unistd.h>      //unix std包含UNIX系统服務的函數， ex:read、write、getpid
-#include<sys/types.h>   //是Unix/Linux系统的基本系统數據類型的header文件， ex:size_t、time_t、pid_t
-#include<sys/wait.h>    //wait、waitid、waitpid...
-#include<signal.h>
-#include "sp_funct.h"
-#define BACKLOG 30 // 在佇列中可以有多少個連線在等待
+#define MYPORT "4950" // 使用者所要連線的 port
+#define MAXBUFLEN 100
 
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
 
-using namespace std;
-vector<Client> client_set;
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
-int main(int argc, char *argv[]) {
-
-    //putenv(const_cast<char *>("PATH=bin:."));
-
+int main(void)
+{
     fd_set master; // master file descriptor 清單
-    fd_set read_fds; // 給 select() 用的暫時 file descriptor
-    int oldstdout, oldstderr;
+    fd_set read_fds; // 給 select() 用的暫時 file descriptor 清單
     int fdmax; // 最大的 file descriptor 數目
 
-    int listenerfd; // listening socket descriptor
+    int listener; // listening socket descriptor
     int newfd; // 新接受的 accept() socket descriptor
-    struct sockaddr_storage remoteaddr; // client address 連線者的位址資訊
-    struct addrinfo hints, *servinfo, *p;
-    socklen_t addr_size;
-
-    char* port = "7001";
-
-    char remoteIP[INET6_ADDRSTRLEN];
-    int rv;
 
     FD_ZERO(&master); // 清除 master 與 temp sets
     FD_ZERO(&read_fds);
 
-    if(argv[1])
-    {
-        port = argv[1];
-    }
+    //int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    int nbytes;
+    //struct sockaddr_storage their_addr;
+    struct sockaddr_storage remoteaddr; // client address
+    char buf[MAXBUFLEN];
+    socklen_t addr_len;
+    char remoteIP[INET6_ADDRSTRLEN];
+    //char s[INET6_ADDRSTRLEN];
 
-    memset(&hints, 0, sizeof hints); // 確保struct為空
-    hints.ai_family = AF_UNSPEC; //  use IPv4 or IPv6, whichever
-    hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
-    hints.ai_flags = AI_PASSIVE; // fill in my IP for me
+    memset(&hints, 0, sizeof hints);
 
-    // 準備好連線
-    if ((rv = getaddrinfo(NULL, port, &hints, &servinfo)) != 0) {
+    hints.ai_family = AF_UNSPEC; // 設定 AF_INET 以強制使用 IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // 使用我的 IP
+
+    if ((rv = getaddrinfo(NULL, MYPORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
 
-    //bind 到第一個能用的結果,且listen
-    my_bind(&listenerfd, &servinfo);
+    // 用迴圈來找出全部的結果，並 bind 到首先找到能 bind 的
+    for(p = servinfo; p != NULL; p = p->ai_next) {
 
-    //listen
-    if (listen(listenerfd, BACKLOG) == -1) {
-        perror("listen");
-        exit(1);
+        if ((listener = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1) {
+            perror("listener: socket");
+            continue;
+        }
+
+        if (bind(listener, p->ai_addr, p->ai_addrlen) == -1) {
+            close(listener);
+            perror("listener: bind");
+            continue;
+        }
+
+        break;
     }
 
+    if (p == NULL) {
+        fprintf(stderr, "listener: failed to bind socket\n");
+        return 2;
+    }
+
+    freeaddrinfo(servinfo);
+    printf("listener: waiting to recvfrom...\n");
+    //addr_len = sizeof remoteaddr;
 
     // 將 listener 新增到 master set
-    FD_SET(listenerfd, &master);
+    FD_SET(listener, &master);
 
     // 持續追蹤最大的 file descriptor
-    fdmax = listenerfd; // 到此為止，就是它了
+    fdmax = listener; // 到此為止，就是它了
 
-    printf("server: waiting for connections...\n");
-
-    // maintain available ID
-    vector<int> IdCells;
-    for (int i = 1; i <= MAX_CLIENT; i++)
-    {
-        IdCells.push_back(i);   // Push the int into the temporary vector<int>
-    }
-
-    while(1) { // 主要的 accept() 迴圈
-        //config files
-        clearenv ();
-        auto *buffer = (char*)malloc(sizeof(char) * MAXCOM);
-        int nbytes;
-
+    // 主要迴圈
+    for( ; ; ) {
         read_fds = master; // 複製 master
 
-        while ((select(fdmax + 1, &read_fds, NULL, NULL, NULL) < 0 )) {
-            if(errno == EINTR)
-                usleep (1000);
-            else{
-                perror("select");
-                exit(4);
-            }
+        if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
+            perror("select");
+            exit(4);
         }
+
         // 在現存的連線中尋找需要讀取的資料
-        for (int s = 0; s <= fdmax; s++) {
-            if (FD_ISSET(s, &read_fds)) { // 我們找到一個！！
-                if (s == listenerfd) {
+        for(int i = 0; i <= fdmax; i++) {
+            if (FD_ISSET(i, &read_fds)) { // 我們找到一個！！
+                if (i == listener) {
                     // handle new connections
-                    addr_size = sizeof remoteaddr;
-                    newfd = accept(listenerfd, (struct sockaddr *) &remoteaddr, &addr_size);
+                    addr_len = sizeof remoteaddr;
+                    newfd = accept(listener,
+                                   (struct sockaddr *)&remoteaddr,
+                                   &addr_len);
 
                     if (newfd == -1) {
                         perror("accept");
@@ -113,120 +115,45 @@ int main(int argc, char *argv[]) {
                         if (newfd > fdmax) { // 持續追蹤最大的 fd
                             fdmax = newfd;
                         }
-
-                        int minElement = *std::min_element(IdCells.begin(), IdCells.end());
-
-                        // 歡迎 new client
-                        welcome(newfd);
-                        Client c;
-                        c.s_id = minElement;
-                        // 刪除此ID
-                        IdCells.erase(std::find(IdCells.begin(),IdCells.end(),minElement));
-                        c.sockfd = newfd;
-                        //c.addr = inet_ntop(remoteaddr.ss_family,
-                        //                   get_in_addr((struct sockaddr *) &remoteaddr),
-                        //                   remoteIP, INET6_ADDRSTRLEN);
-                        //c.port = ntohs(get_in_port((struct sockaddr *) &remoteaddr));
-
-                        client_set.push_back(c);
-                        string login_s = c.login();
-                        broadcast(login_s.c_str(), login_s.length());
-
-
-                        // 準備進到shell
-                        if(send(newfd, "% ", 3, 0) == -1){
-                            perror("send");
-                            exit(1);
-                        }
+                        printf("selectserver: new connection from %s on "
+                               "socket %d\n",
+                               inet_ntop(remoteaddr.ss_family,
+                                         get_in_addr((struct sockaddr*)&remoteaddr),
+                                         remoteIP, INET6_ADDRSTRLEN),
+                               newfd);
                     }
 
                 } else {
                     // 處理來自 client 的資料
-                    if ((nbytes = readline(s, buffer, MAXCOM)) <= 0) {
-                    //if ((nbytes = recv(s, buffer, sizeof buffer, 0)) <= 0) {
+                    if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
-                        int index ;
-                        if((index = find_index(s)) < 0){
-                            perror("find");
-                        }
                         if (nbytes == 0) {
-                            string logout_s = client_set[index].logout();
-                            broadcast(logout_s.c_str(), logout_s.length());
                             // 關閉連線
-                            printf("selectserver id: %d hung up\n",client_set[index].s_id);
-                            fflush(stdout);
+                            printf("selectserver: socket %d hung up\n", i);
                         } else {
                             perror("recv");
                         }
-                        IdCells.push_back(client_set[index].s_id);
-                        closepipe(client_set[index]);
-                        client_set.erase(client_set.begin() + (index) );
-                        close(s); // bye!
-                        FD_CLR(s, &master); // 從 master set 中移除
+                        close(i); // bye!
+                        FD_CLR(i, &master); // 從 master set 中移除
 
                     } else {
                         // 我們從 client 收到一些資料
-                        printf("--%d--",nbytes);
-                        fflush(stdout);
-                        //broadcast(fdmax, master, listenerfd, buffer, nbytes);
-
-                        //創建STDOUT & STDERR 的備份
-                        oldstdout = dup(STDOUT_FILENO);
-                        oldstderr = dup(STDERR_FILENO);
-
-                        dup2(s, STDOUT_FILENO);
-                        dup2(s, STDERR_FILENO);
-                        // do shell
-                        int index ;
-                        if((index = find_index(s)) < 0){
-                            perror("find");
-                        }
-                        if( !cml_loop(s, buffer, client_set[index]) ) {
-                            string logout_s = client_set[index].logout();
-                            broadcast(logout_s.c_str(), logout_s.length());
-                            // 關閉連線
-                            IdCells.push_back(client_set[index].s_id);
-                            closepipe(client_set[index]);
-                            client_set.erase(client_set.begin() + (index) );
-                            close(s); // bye!
-                            FD_CLR(s, &master); // 從 master set 中移除
-                            dup2(oldstdout,STDOUT_FILENO);
-                            dup2(oldstderr,STDERR_FILENO);
-                            close(oldstdout);
-                            close(oldstderr);
-                            printf("selectserver sock: %d hung up\n",s);
-                            fflush(stdout);
-                        } else{
-                            dup2(oldstdout,STDOUT_FILENO);
-                            dup2(oldstderr,STDERR_FILENO);
-                            close(oldstdout);
-                            close(oldstderr);
-                            // 準備再次進到shell
-                            if(send(s, "% ", 3, 0) == -1){
-                                perror("send");
-                                exit(1);
+                        for(int j = 0; j <= fdmax; j++) {
+                            // 送給大家！
+                            if (FD_ISSET(j, &master)) {
+                                // 不用送給 listener 跟我們自己
+                                if (j != listener && j != i) {
+                                    if (send(j, buf, nbytes, 0) == -1) {
+                                        perror("send");
+                                    }
+                                }
                             }
                         }
                     }
                 } // END handle data from client
             } // END got new incoming connection
         } // END looping through file descriptors
+    } // END for( ; ; )--and you thought it would never end!
 
-        //debug
-        printf("available id:\n");
-        for(auto &a : client_set){
-            printf("id:%d, sockfd:%d ,\nuser_pipe:\n",a.s_id,a.sockfd);
-            for(auto &b : a.userpipe_map)
-            {
-                printf("sender:%d ",b.first);
-                b.second.debugger();
-            }
-        }
-
-        printf("\n");
-        fflush(stdout);
-    }
-    close(listenerfd);
-
-    exit(EXIT_SUCCESS);
+    return 0;
 }

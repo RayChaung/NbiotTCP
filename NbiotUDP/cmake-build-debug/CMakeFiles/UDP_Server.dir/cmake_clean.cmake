@@ -1,7 +1,5 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/UDP_Server.dir/sp_funct.cpp.o"
   "CMakeFiles/UDP_Server.dir/sp_main.cpp.o"
-  "CMakeFiles/UDP_Server.dir/sp_socket.cpp.o"
   "UDP_Server"
   "UDP_Server.pdb"
 )

@@ -4,9 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/ray/Desktop/NbiotTCP/NbiotUDP/sp_funct.cpp" "/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/UDP_Server.dir/sp_funct.cpp.o"
   "/home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp" "/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/UDP_Server.dir/sp_main.cpp.o"
-  "/home/ray/Desktop/NbiotTCP/NbiotUDP/sp_socket.cpp" "/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/UDP_Server.dir/sp_socket.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

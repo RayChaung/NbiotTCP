@@ -74,12 +74,12 @@ preinstall:
 CMakeFiles/UDP_Server.dir/all:
 	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/depend
 	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles --progress-num=1,2,3,4 "Built target UDP_Server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target UDP_Server"
 .PHONY : CMakeFiles/UDP_Server.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/UDP_Server.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles 2
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/UDP_Server.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/UDP_Server.dir/rule

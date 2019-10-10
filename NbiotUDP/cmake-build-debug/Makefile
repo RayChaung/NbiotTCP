@@ -123,33 +123,6 @@ UDP_Server/fast:
 	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/build
 .PHONY : UDP_Server/fast
 
-sp_funct.o: sp_funct.cpp.o
-
-.PHONY : sp_funct.o
-
-# target to build an object file
-sp_funct.cpp.o:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_funct.cpp.o
-.PHONY : sp_funct.cpp.o
-
-sp_funct.i: sp_funct.cpp.i
-
-.PHONY : sp_funct.i
-
-# target to preprocess a source file
-sp_funct.cpp.i:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_funct.cpp.i
-.PHONY : sp_funct.cpp.i
-
-sp_funct.s: sp_funct.cpp.s
-
-.PHONY : sp_funct.s
-
-# target to generate assembly for a file
-sp_funct.cpp.s:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_funct.cpp.s
-.PHONY : sp_funct.cpp.s
-
 sp_main.o: sp_main.cpp.o
 
 .PHONY : sp_main.o
@@ -177,33 +150,6 @@ sp_main.cpp.s:
 	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_main.cpp.s
 .PHONY : sp_main.cpp.s
 
-sp_socket.o: sp_socket.cpp.o
-
-.PHONY : sp_socket.o
-
-# target to build an object file
-sp_socket.cpp.o:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_socket.cpp.o
-.PHONY : sp_socket.cpp.o
-
-sp_socket.i: sp_socket.cpp.i
-
-.PHONY : sp_socket.i
-
-# target to preprocess a source file
-sp_socket.cpp.i:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_socket.cpp.i
-.PHONY : sp_socket.cpp.i
-
-sp_socket.s: sp_socket.cpp.s
-
-.PHONY : sp_socket.s
-
-# target to generate assembly for a file
-sp_socket.cpp.s:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_socket.cpp.s
-.PHONY : sp_socket.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -213,15 +159,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... UDP_Server"
 	@echo "... edit_cache"
-	@echo "... sp_funct.o"
-	@echo "... sp_funct.i"
-	@echo "... sp_funct.s"
 	@echo "... sp_main.o"
 	@echo "... sp_main.i"
 	@echo "... sp_main.s"
-	@echo "... sp_socket.o"
-	@echo "... sp_socket.i"
-	@echo "... sp_socket.s"
 .PHONY : help
 
 
