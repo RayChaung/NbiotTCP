@@ -1,0 +1,3 @@
+/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/UDP_Server.dir
+/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles/edit_cache.dir

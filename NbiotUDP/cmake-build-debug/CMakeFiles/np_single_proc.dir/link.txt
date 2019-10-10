@@ -1,0 +1,1 @@
+/usr/bin/c++  -g  -rdynamic CMakeFiles/np_single_proc.dir/sp_main.cpp.o CMakeFiles/np_single_proc.dir/sp_funct.cpp.o CMakeFiles/np_single_proc.dir/sp_socket.cpp.o  -o np_single_proc 
