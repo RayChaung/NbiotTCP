@@ -27,6 +27,16 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="UDP_Server">
 				<Option output="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/UDP_Server" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug"/>
@@ -73,18 +83,57 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="edit_cache">
+			<Target title="UDP_Client">
+				<Option output="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/UDP_Client" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug"/>
-				<Option type="4"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/8"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/8"/>
+					<Add directory="/usr/include/c++/8/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
 				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 UDP_Client"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="UDP_Client/fast">
+				<Option output="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/UDP_Client" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/usr/include/c++/8"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/8"/>
+					<Add directory="/usr/include/c++/8/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/8/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 UDP_Client/fast"/>
 					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
 					<Clean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp">
+		<Unit filename="/home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Client.cpp">
+			<Option target="UDP_Client"/>
+		</Unit>
+		<Unit filename="/home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Server.cpp">
 			<Option target="UDP_Server"/>
 		</Unit>
 		<Unit filename="/home/ray/Desktop/NbiotTCP/NbiotUDP/CMakeLists.txt">

@@ -123,32 +123,72 @@ UDP_Server/fast:
 	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/build
 .PHONY : UDP_Server/fast
 
-sp_main.o: sp_main.cpp.o
+#=============================================================================
+# Target rules for targets named UDP_Client
 
-.PHONY : sp_main.o
+# Build rule for target.
+UDP_Client: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 UDP_Client
+.PHONY : UDP_Client
+
+# fast build rule for target.
+UDP_Client/fast:
+	$(MAKE) -f CMakeFiles/UDP_Client.dir/build.make CMakeFiles/UDP_Client.dir/build
+.PHONY : UDP_Client/fast
+
+UDP_Client.o: UDP_Client.cpp.o
+
+.PHONY : UDP_Client.o
 
 # target to build an object file
-sp_main.cpp.o:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_main.cpp.o
-.PHONY : sp_main.cpp.o
+UDP_Client.cpp.o:
+	$(MAKE) -f CMakeFiles/UDP_Client.dir/build.make CMakeFiles/UDP_Client.dir/UDP_Client.cpp.o
+.PHONY : UDP_Client.cpp.o
 
-sp_main.i: sp_main.cpp.i
+UDP_Client.i: UDP_Client.cpp.i
 
-.PHONY : sp_main.i
+.PHONY : UDP_Client.i
 
 # target to preprocess a source file
-sp_main.cpp.i:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_main.cpp.i
-.PHONY : sp_main.cpp.i
+UDP_Client.cpp.i:
+	$(MAKE) -f CMakeFiles/UDP_Client.dir/build.make CMakeFiles/UDP_Client.dir/UDP_Client.cpp.i
+.PHONY : UDP_Client.cpp.i
 
-sp_main.s: sp_main.cpp.s
+UDP_Client.s: UDP_Client.cpp.s
 
-.PHONY : sp_main.s
+.PHONY : UDP_Client.s
 
 # target to generate assembly for a file
-sp_main.cpp.s:
-	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/sp_main.cpp.s
-.PHONY : sp_main.cpp.s
+UDP_Client.cpp.s:
+	$(MAKE) -f CMakeFiles/UDP_Client.dir/build.make CMakeFiles/UDP_Client.dir/UDP_Client.cpp.s
+.PHONY : UDP_Client.cpp.s
+
+UDP_Server.o: UDP_Server.cpp.o
+
+.PHONY : UDP_Server.o
+
+# target to build an object file
+UDP_Server.cpp.o:
+	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o
+.PHONY : UDP_Server.cpp.o
+
+UDP_Server.i: UDP_Server.cpp.i
+
+.PHONY : UDP_Server.i
+
+# target to preprocess a source file
+UDP_Server.cpp.i:
+	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/UDP_Server.cpp.i
+.PHONY : UDP_Server.cpp.i
+
+UDP_Server.s: UDP_Server.cpp.s
+
+.PHONY : UDP_Server.s
+
+# target to generate assembly for a file
+UDP_Server.cpp.s:
+	$(MAKE) -f CMakeFiles/UDP_Server.dir/build.make CMakeFiles/UDP_Server.dir/UDP_Server.cpp.s
+.PHONY : UDP_Server.cpp.s
 
 # Help Target
 help:
@@ -157,11 +197,15 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... UDP_Server"
 	@echo "... edit_cache"
-	@echo "... sp_main.o"
-	@echo "... sp_main.i"
-	@echo "... sp_main.s"
+	@echo "... UDP_Server"
+	@echo "... UDP_Client"
+	@echo "... UDP_Client.o"
+	@echo "... UDP_Client.i"
+	@echo "... UDP_Client.s"
+	@echo "... UDP_Server.o"
+	@echo "... UDP_Server.i"
+	@echo "... UDP_Server.s"
 .PHONY : help
 
 

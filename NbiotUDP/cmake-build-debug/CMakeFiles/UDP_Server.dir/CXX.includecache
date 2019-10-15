@@ -6,25 +6,23 @@
 
 #IncludeRegexTransform: 
 
-/home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp
-stdio.h
+/home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Server.cpp
+iostream
 -
-stdlib.h
+sstream
 -
-unistd.h
+string
 -
-errno.h
+list
 -
-string.h
+boost/array.hpp
 -
-sys/types.h
+boost/bind.hpp
 -
-sys/socket.h
+boost/shared_ptr.hpp
 -
-netinet/in.h
+boost/asio.hpp
 -
-arpa/inet.h
--
-netdb.h
+boost/thread.hpp
 -
 

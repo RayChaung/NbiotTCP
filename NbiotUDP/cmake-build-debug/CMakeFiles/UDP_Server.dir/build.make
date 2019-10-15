@@ -57,27 +57,27 @@ include CMakeFiles/UDP_Server.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/UDP_Server.dir/flags.make
 
-CMakeFiles/UDP_Server.dir/sp_main.cpp.o: CMakeFiles/UDP_Server.dir/flags.make
-CMakeFiles/UDP_Server.dir/sp_main.cpp.o: ../sp_main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/UDP_Server.dir/sp_main.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/UDP_Server.dir/sp_main.cpp.o -c /home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp
+CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o: CMakeFiles/UDP_Server.dir/flags.make
+CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o: ../UDP_Server.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o -c /home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Server.cpp
 
-CMakeFiles/UDP_Server.dir/sp_main.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/UDP_Server.dir/sp_main.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp > CMakeFiles/UDP_Server.dir/sp_main.cpp.i
+CMakeFiles/UDP_Server.dir/UDP_Server.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/UDP_Server.dir/UDP_Server.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Server.cpp > CMakeFiles/UDP_Server.dir/UDP_Server.cpp.i
 
-CMakeFiles/UDP_Server.dir/sp_main.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/UDP_Server.dir/sp_main.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ray/Desktop/NbiotTCP/NbiotUDP/sp_main.cpp -o CMakeFiles/UDP_Server.dir/sp_main.cpp.s
+CMakeFiles/UDP_Server.dir/UDP_Server.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/UDP_Server.dir/UDP_Server.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ray/Desktop/NbiotTCP/NbiotUDP/UDP_Server.cpp -o CMakeFiles/UDP_Server.dir/UDP_Server.cpp.s
 
 # Object files for target UDP_Server
 UDP_Server_OBJECTS = \
-"CMakeFiles/UDP_Server.dir/sp_main.cpp.o"
+"CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o"
 
 # External object files for target UDP_Server
 UDP_Server_EXTERNAL_OBJECTS =
 
-UDP_Server: CMakeFiles/UDP_Server.dir/sp_main.cpp.o
+UDP_Server: CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o
 UDP_Server: CMakeFiles/UDP_Server.dir/build.make
 UDP_Server: CMakeFiles/UDP_Server.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/ray/Desktop/NbiotTCP/NbiotUDP/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable UDP_Server"

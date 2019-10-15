@@ -1,1 +1,1 @@
-/usr/bin/c++  -g  -rdynamic CMakeFiles/UDP_Server.dir/sp_main.cpp.o  -o UDP_Server 
+/usr/bin/c++  -g  -rdynamic CMakeFiles/UDP_Server.dir/UDP_Server.cpp.o  -o UDP_Server -lboost_thread -lboost_system -lpthread 
