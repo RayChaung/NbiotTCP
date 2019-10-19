@@ -1,4 +1,24 @@
-//reference https://backreference.org/2010/03/26/tuntap-interface-tutorial/ simpletun.c
+/**************************************************************************
+ * simpletun.c                                                            *
+ *                                                                        *
+ * A simplistic, simple-minded, naive tunnelling program using tun/tap    *
+ * interfaces and TCP. DO NOT USE THIS PROGRAM FOR SERIOUS PURPOSES.      *
+ *                                                                        *
+ * You have been warned.                                                  *
+ *                                                                        *
+ * (C) 2010 Davide Brini.                                                 *
+ *                                                                        *
+ * DISCLAIMER AND WARNING: this is all work in progress. The code is      *
+ * ugly, the algorithms are naive, error checking and input validation    *
+ * are very basic, and of course there can be bugs. If that's not enough, *
+ * the program has not been thoroughly tested, so it might even fail at   *
+ * the few simple things it should be supposed to do right.               *
+ * Needless to say, I take no responsibility whatsoever for what the      *
+ * program might do. The program has been written mostly for learning     *
+ * purposes, and can be used in the hope that is useful, but everything   *
+ * is to be taken "as is" and without any kind of warranty, implicit or   *
+ * explicit. See the file LICENSE for further details.                    *
+ *************************************************************************/ 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,10 +56,11 @@ char ATcommands[11][50] = {
 			   "AT+CIICR\r", 
 			   "AT+CIFSR\r",
 			   "AT+CIPSHUT\r",
-			   "AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", 
+			   "AT+CIPSTART=\"udp\",\"", 
 			   "AT+CIPSEND?\r", 
 			   "AT\r"};
 int command = 0;
+//"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", 
 int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
 {
   int isBlockingMode;
@@ -99,7 +120,7 @@ void *sendThread(void *parameters)
  
  while(command < 12)
  {
-  snprintf(&sendBuff[0], MAX_STR_LEN, &ATcommands[command]);
+  snprintf(&sendBuff[0], MAX_STR_LEN, ATcommands[command]);
   write(fd, &sendBuff[0], strlen(&sendBuff[0]) ); 
  
   // sleep enough to transmit the length plus receive 25:  
@@ -232,7 +253,7 @@ int main(int argc, char *argv[]) {
   int flags = IFF_TUN;
   char if_name[IFNAMSIZ] = "";
   int maxfd;
-  uint16_t nread, nwrite;
+  int nread, nwrite;
   unsigned char buffer[BUFSIZE];
   unsigned char rx_buffer[BUFSIZE];
   unsigned char buffer_ascii[BUFSIZE*2], rx_buffer_ascii[BUFSIZE*2];
@@ -243,7 +264,7 @@ int main(int argc, char *argv[]) {
   socklen_t remotelen;
   unsigned long int tap2net = 0, net2tap = 0;
   int cliserv = -1;    /* must be specified on cmd line */
-  int client_len;
+  int rv_len;
   progname = argv[0];
   //serial variable
   pthread_t sendThread_t;
@@ -251,7 +272,7 @@ int main(int argc, char *argv[]) {
   
   
   /* Check command line options */
-  while((option = getopt(argc, argv, "i:sc:p:uahd")) > 0) {
+  while((option = getopt(argc, argv, "i:s:c:p:uahd")) > 0) {
     switch(option) {
       case 'd':
         debug = 1;
@@ -264,6 +285,7 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         cliserv = SERVER;
+		strncpy(remote_ip,optarg,15);
         break;
       case 'c':
         cliserv = CLIENT;
@@ -299,6 +321,10 @@ int main(int argc, char *argv[]) {
     my_err("Must specify client or server mode!\n");
     usage();
   } else if((cliserv == CLIENT)&&(*remote_ip == '\0')) {
+    my_err("Must specify client address!\n");
+    usage();
+  }
+  else if((cliserv == SERVER)&&(*remote_ip == '\0')) {
     my_err("Must specify server address!\n");
     usage();
   }
@@ -326,30 +352,33 @@ int main(int argc, char *argv[]) {
 		perror("/dev/ttyUSB2"); 
 		exit(-1); 
 	}
+	char tmp[6];
+	sprintf(tmp, "%d", port);
+	strcat(ATcommands[8], remote_ip);
+	strcat(ATcommands[8], "\",");
+	strcat(ATcommands[8], tmp);
+	ATcommands[8][strlen(ATcommands[8])] = '\r';
 	pthread_create(&sendThread_t, NULL, (void *)sendThread, (void *)&net_fd);
 	
     
   } 
   else {
     /* Server, wait for connections */
-
-    /* avoid EADDRINUSE error on bind() */
-    if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)) < 0) {
-      perror("setsockopt()");
-      exit(1);
-    }
-    
+    //SERVER
     memset(&server, 0, sizeof(server));
-	memset(&client, 0, sizeof(client));
     server.sin_family = AF_INET;
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
+    server.sin_addr.s_addr = inet_addr(remote_ip);
     server.sin_port = htons(port);
-    if (bind(sock_fd, (struct sockaddr*) &server, sizeof(server)) < 0) {
-      perror("bind()");
-      exit(1);
-    }
-	
 
+	
+		if((nwrite=sendto(sock_fd, "+++192.168.0.1", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
+			perror("sendto data");
+			exit(1);
+		}
+		if((nwrite=sendto(sock_fd, "+++192.168.0.1", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
+			perror("sendto data");
+			exit(1);
+		}
 	net_fd = sock_fd;
 	
   }
@@ -420,7 +449,7 @@ int main(int argc, char *argv[]) {
 			else
 				buffer_ascii[2*i+1] = (buffer[i] % 16) + 55;
 		}
-		if((nwrite=sendto(net_fd, buffer_ascii, nread*2, 0, (const struct sockaddr *) &client, client_len)) < 0){
+		if((nwrite=sendto(net_fd, buffer_ascii, nread*2, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
 			perror("sendto data");
 			exit(1);
 		}
@@ -437,7 +466,6 @@ int main(int argc, char *argv[]) {
 	  /* Rpi read packet from nbiot*/
 	  if(cliserv == CLIENT){
 		memset(buffer_ascii, 0, BUFSIZE*2);
-		usleep(50*1000);
 		len = read(net_fd, buffer_ascii, BUFSIZE*2);
 		if(len == -1)
 			printf("error when reading\n");
@@ -445,12 +473,13 @@ int main(int argc, char *argv[]) {
 		fflush(stdout);
 		
 	  }
-	  else{  //cliserv == SERVER, host read packet from socket
+	  else{  
+		  //cliserv == SERVER, host read packet from socket
 		  memset(buffer_ascii, 0, BUFSIZE*2);
-		  if((nread=recvfrom(net_fd, buffer_ascii, BUFSIZE*2, 0, ( struct sockaddr *)&client, &client_len)) < 0){
-		  perror("Recvfrom data");
-		  exit(1);
-		}
+		  if((nread=recvfrom(net_fd, buffer_ascii, BUFSIZE*2, 0, ( struct sockaddr *)&server, &rv_len)) < 0){
+			perror("Recvfrom data");
+			exit(1);
+		  }
 	  }  
 
 	  
@@ -489,7 +518,8 @@ int main(int argc, char *argv[]) {
 		nwrite = cwrite(tap_fd, rx_buffer, nread/2 );
 		do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
 	  }
-	  else{  //cliserv == CLIENT, Rpi copy nbiot packet to tap interface
+	  else{  
+		//cliserv == CLIENT, Rpi copy nbiot packet to tap interface
 		unsigned char* findsub, * findcolon;
 		findsub = strstr(buffer_ascii, "+IPD,");
 		if(findsub != NULL){
@@ -532,11 +562,8 @@ int main(int argc, char *argv[]) {
 					//exit(1);
 				}
 				
-			}
-			//printf("real data : %s\n",rx_buffer);
-			
+			}			
 			nwrite = cwrite(tap_fd, rx_buffer, nbiot_rx_byte/2);
-			//do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
 			
 		}  
 	  }

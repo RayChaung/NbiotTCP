@@ -1,4 +1,24 @@
-//reference https://backreference.org/2010/03/26/tuntap-interface-tutorial/ simpletun.c
+/**************************************************************************
+ * simpletun.c                                                            *
+ *                                                                        *
+ * A simplistic, simple-minded, naive tunnelling program using tun/tap    *
+ * interfaces and TCP. DO NOT USE THIS PROGRAM FOR SERIOUS PURPOSES.      *
+ *                                                                        *
+ * You have been warned.                                                  *
+ *                                                                        *
+ * (C) 2010 Davide Brini.                                                 *
+ *                                                                        *
+ * DISCLAIMER AND WARNING: this is all work in progress. The code is      *
+ * ugly, the algorithms are naive, error checking and input validation    *
+ * are very basic, and of course there can be bugs. If that's not enough, *
+ * the program has not been thoroughly tested, so it might even fail at   *
+ * the few simple things it should be supposed to do right.               *
+ * Needless to say, I take no responsibility whatsoever for what the      *
+ * program might do. The program has been written mostly for learning     *
+ * purposes, and can be used in the hope that is useful, but everything   *
+ * is to be taken "as is" and without any kind of warranty, implicit or   *
+ * explicit. See the file LICENSE for further details.                    *
+ *************************************************************************/ 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,6 +111,25 @@ int cwrite(int fd, char *buf, int n){
 }
 
 /**************************************************************************
+ * read_n: ensures we read exactly n bytes, and puts them into "buf".     *
+ *         (unless EOF, of course)                                        *
+ **************************************************************************/
+int read_n(int fd, char *buf, int n) {
+
+  int nread, left = n;
+
+  while(left > 0) {
+    if ((nread = cread(fd, buf, left)) == 0){
+      return 0 ;      
+    }else {
+      left -= nread;
+      buf += nread;
+    }
+  }
+  return n;  
+}
+
+/**************************************************************************
  * do_debug: prints debugging stuff (doh!)                                *
  **************************************************************************/
 void do_debug(char *msg, ...){
@@ -141,14 +180,14 @@ int main(int argc, char *argv[]) {
   int maxfd;
   uint16_t nread, nwrite, plength;
   char buffer[BUFSIZE];
-  struct sockaddr_in server, client;
+  struct sockaddr_in local, remote;
   char remote_ip[16] = "";            /* dotted quad IP string */
   unsigned short int port = PORT;
   int sock_fd, net_fd, optval = 1;
   socklen_t remotelen;
-  unsigned long int tap2net = 0, net2tap = 0;
   int cliserv = -1;    /* must be specified on cmd line */
-  int client_len;
+  unsigned long int tap2net = 0, net2tap = 0;
+
   progname = argv[0];
   
   /* Check command line options */
@@ -221,17 +260,22 @@ int main(int argc, char *argv[]) {
     /* Client, try to connect to server */
 
     /* assign the destination address */
-    memset(&server, 0, sizeof(server));
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = inet_addr(remote_ip);
-    server.sin_port = htons(port);
-	
-    
-	
+    memset(&remote, 0, sizeof(remote));
+    remote.sin_family = AF_INET;
+    remote.sin_addr.s_addr = inet_addr(remote_ip);
+    remote.sin_port = htons(port);
+
+    /* connection request */
+    if (connect(sock_fd, (struct sockaddr*) &remote, sizeof(remote)) < 0) {
+      perror("connect()");
+      exit(1);
+    }
+
     net_fd = sock_fd;
+    do_debug("CLIENT: Connected to server %s\n", inet_ntoa(remote.sin_addr));
     
-  } 
-  else {
+  } else 
+  {
     /* Server, wait for connections */
 
     /* avoid EADDRINUSE error on bind() */
@@ -240,18 +284,29 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     
-    memset(&server, 0, sizeof(server));
-	memset(&client, 0, sizeof(client));
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-    server.sin_port = htons(port);
-    if (bind(sock_fd, (struct sockaddr*) &server, sizeof(server)) < 0) {
+    memset(&local, 0, sizeof(local));
+    local.sin_family = AF_INET;
+    local.sin_addr.s_addr = htonl(INADDR_ANY);
+    local.sin_port = htons(port);
+    if (bind(sock_fd, (struct sockaddr*) &local, sizeof(local)) < 0) {
       perror("bind()");
       exit(1);
     }
-	
+    
+    if (listen(sock_fd, 5) < 0) {
+      perror("listen()");
+      exit(1);
+    }
+    
+    /* wait for connection request */
+    remotelen = sizeof(remote);
+    memset(&remote, 0, remotelen);
+    if ((net_fd = accept(sock_fd, (struct sockaddr*)&remote, &remotelen)) < 0) {
+      perror("accept()");
+      exit(1);
+    }
 
-	net_fd = sock_fd;
+    do_debug("SERVER: Client connected from %s\n", inet_ntoa(remote.sin_addr));
   }
   
   /* use select() to handle two descriptors at once */
@@ -277,27 +332,17 @@ int main(int argc, char *argv[]) {
 
     if(FD_ISSET(tap_fd, &rd_set)) {
       /* data from tun/tap: just read it and write it to the network */
-      	  
-	  nread = cread(tap_fd, buffer, BUFSIZE);
-	  
-	  tap2net++;
+      
+      nread = cread(tap_fd, buffer, BUFSIZE);
+
+      tap2net++;
       do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
 
-      /* write packet to network*/
-      if(cliserv == CLIENT){
-		  
-		if((nwrite=sendto(net_fd, buffer, nread, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
-			perror("sendto data");
-			exit(1);
-		}
-	  }
-      else{
-		  
-		if((nwrite=sendto(net_fd, buffer, nread, 0, (const struct sockaddr *) &client, client_len)) < 0){
-			perror("sendto data");
-			exit(1);
-		}
-	  }
+      /* write length + packet */
+      plength = htons(nread);
+      nwrite = cwrite(net_fd, (char *)&plength, sizeof(plength));
+      nwrite = cwrite(net_fd, buffer, nread);
+      
       do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
     }
 
@@ -305,21 +350,17 @@ int main(int argc, char *argv[]) {
       /* data from the network: read it, and write it to the tun/tap interface. 
        * We need to read the length first, and then the packet */
 
-	  /* read packet */
-	  if(cliserv == CLIENT){
-		  if((nread=recvfrom(net_fd, buffer, BUFSIZE, 0, NULL, NULL)) < 0){
-		  perror("Recvfrom data");
-		  exit(1);
-		}
-	  }
-	  else{
-		  if((nread=recvfrom(net_fd, buffer, BUFSIZE, 0, (const struct sockaddr *)&client, &client_len)) < 0){
-		  perror("Recvfrom data");
-		  exit(1);
-		}
-	  }  
-	  
-	  net2tap++;
+      /* Read length */      
+      nread = read_n(net_fd, (char *)&plength, sizeof(plength));
+      if(nread == 0) {
+        /* ctrl-c at the other end */
+        break;
+      }
+
+      net2tap++;
+
+      /* read packet */
+      nread = read_n(net_fd, buffer, ntohs(plength));
       do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
 
       /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */ 
