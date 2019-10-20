@@ -47,7 +47,7 @@
 #define SERVER 1
 #define PORT 55555
 /*serial setup and read write*/
-char ATcommands[11][50] = {
+char ATcommands[15][50] = {
 			   "AT\r",
 			   "AT+CPIN?\r", 
 			   "AT+CGDCONT=1,\"ip\",\"\"\r", 
@@ -57,7 +57,11 @@ char ATcommands[11][50] = {
 			   "AT+CIFSR\r",
 			   "AT+CIPSHUT\r",
 			   "AT+CIPSTART=\"udp\",\"", 
-			   "AT+CIPSEND?\r", 
+			   "AT+CIPSEND?\r",
+			   "AT+CIPSEND\r",
+			   "+++192.168.0.1\x1a",
+			   "AT\r",
+			   "AT\r",
 			   "AT\r"};
 int command = 0;
 //"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", 
@@ -118,14 +122,14 @@ void *sendThread(void *parameters)
  
  fd = *((int*)parameters);
  
- while(command < 12)
+ while(command < 15)
  {
   snprintf(&sendBuff[0], MAX_STR_LEN, ATcommands[command]);
   write(fd, &sendBuff[0], strlen(&sendBuff[0]) ); 
  
   // sleep enough to transmit the length plus receive 25:  
   // approx 100 uS per char transmit
-  if(command == 11)
+  if(command == 14)
 	  break;
   else command ++;
   usleep((strlen(&sendBuff[0]) + 25) * 100);     
@@ -371,11 +375,11 @@ int main(int argc, char *argv[]) {
     server.sin_port = htons(port);
 
 	
-		if((nwrite=sendto(sock_fd, "+++192.168.0.1", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
+		if((nwrite=sendto(sock_fd, "+++192.168.0.2", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
 			perror("sendto data");
 			exit(1);
 		}
-		if((nwrite=sendto(sock_fd, "+++192.168.0.1", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
+		if((nwrite=sendto(sock_fd, "+++192.168.0.2", 20, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
 			perror("sendto data");
 			exit(1);
 		}
@@ -466,6 +470,7 @@ int main(int argc, char *argv[]) {
 	  /* Rpi read packet from nbiot*/
 	  if(cliserv == CLIENT){
 		memset(buffer_ascii, 0, BUFSIZE*2);
+		usleep(50*1000);
 		len = read(net_fd, buffer_ascii, BUFSIZE*2);
 		if(len == -1)
 			printf("error when reading\n");
