@@ -1,24 +1,4 @@
-/**************************************************************************
- * simpletun.c                                                            *
- *                                                                        *
- * A simplistic, simple-minded, naive tunnelling program using tun/tap    *
- * interfaces and TCP. DO NOT USE THIS PROGRAM FOR SERIOUS PURPOSES.      *
- *                                                                        *
- * You have been warned.                                                  *
- *                                                                        *
- * (C) 2010 Davide Brini.                                                 *
- *                                                                        *
- * DISCLAIMER AND WARNING: this is all work in progress. The code is      *
- * ugly, the algorithms are naive, error checking and input validation    *
- * are very basic, and of course there can be bugs. If that's not enough, *
- * the program has not been thoroughly tested, so it might even fail at   *
- * the few simple things it should be supposed to do right.               *
- * Needless to say, I take no responsibility whatsoever for what the      *
- * program might do. The program has been written mostly for learning     *
- * purposes, and can be used in the hope that is useful, but everything   *
- * is to be taken "as is" and without any kind of warranty, implicit or   *
- * explicit. See the file LICENSE for further details.                    *
- *************************************************************************/ 
+//reference https://backreference.org/2010/03/26/tuntap-interface-tutorial/ simpletun.c 
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,13 +219,12 @@ void my_err(char *msg, ...) {
  **************************************************************************/
 void usage(void) {
   fprintf(stderr, "Usage:\n");
-  fprintf(stderr, "%s -i <ifacename> [-s|-c <serverIP>] [-p <port>] [-u|-a] [-d]\n", progname);
+  fprintf(stderr, "%s -i <ifacename> [-s<proxyIP>|-c <proxyIP>] [-p <port>] [-d]\n", progname);
   fprintf(stderr, "%s -h\n", progname);
   fprintf(stderr, "\n");
   fprintf(stderr, "-i <ifacename>: Name of interface to use (mandatory)\n");
-  fprintf(stderr, "-s|-c <serverIP>: run in server mode (-s), or specify server address (-c <serverIP>) (mandatory)\n");
-  fprintf(stderr, "-p <port>: port to listen on (if run in server mode) or to connect to (in client mode), default 55555\n");
-  fprintf(stderr, "-u|-a: use TUN (-u, default) or TAP (-a)\n");
+  fprintf(stderr, "-s<proxyIP>|-c<proxyIP>: run in Host Computers (-s), or NBIOT deivces (-c) (mandatory)\n");
+  fprintf(stderr, "-p <port>: specify proxy's open port (mandatory)\n");
   fprintf(stderr, "-d: outputs debug information while running\n");
   fprintf(stderr, "-h: prints this help text\n");
   exit(1);
@@ -276,7 +255,7 @@ int main(int argc, char *argv[]) {
   
   
   /* Check command line options */
-  while((option = getopt(argc, argv, "i:s:c:p:uahd")) > 0) {
+  while((option = getopt(argc, argv, "i:s:c:p:hd")) > 0) {
     switch(option) {
       case 'd':
         debug = 1;
@@ -297,12 +276,6 @@ int main(int argc, char *argv[]) {
         break;
       case 'p':
         port = atoi(optarg);
-        break;
-      case 'u':
-        flags = IFF_TUN;
-        break;
-      case 'a':
-        flags = IFF_TAP;
         break;
       default:
         my_err("Unknown option %c\n", option);
