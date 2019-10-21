@@ -29,10 +29,10 @@ $ ifconfig 										//check all config is right
 
 Usage: 
 for daemon:
-	$ ./daemon -i <ifacename> [-s<proxyIP>|-c <proxyIP>] [-p <port>] [-d]
+	$ sudo ./daemon -i <ifacename> [-s<proxyIP>|-c <proxyIP>] [-p <port>] [-d]
 	
 -i <ifacename>: Name of interface to use (mandatory)
--s<proxyIP>|-c<proxyIP>: run in Host Computers (-s), or NBIOT deivces (-c) (mandatory)
+-s<proxyIP>|-c<proxyIP>: run in Host Computers (-s), or NBIOT deivces (-c) and specify proxyIP address(mandatory)
 -p <port>: specify proxy's open port (mandatory)
 -d: outputs debug information while running
 

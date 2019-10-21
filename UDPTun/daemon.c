@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
   unsigned short int port = PORT;
   int sock_fd, net_fd, optval = 1;
   socklen_t remotelen;
-  unsigned long int tap2net = 0, net2tap = 0;
+  unsigned long int tap2net = 0, net2tap = 0, nbiot_rx_err_num = 0;
   int cliserv = -1;    /* must be specified on cmd line */
   int rv_len;
   progname = argv[0];
@@ -505,12 +505,13 @@ int main(int argc, char *argv[]) {
 			int tmp = 0, nbiot_rx_byte=0;
 			char rx_byte[5];
 			findcolon = strstr(buffer_ascii, ":");
-			tmp = (int)findcolon - (int)findsub - 5;
+			tmp = (int)(findcolon - findsub);
+			tmp -= 5;
 			memset(rx_byte, 0, 5);
 			memmove(rx_byte, findsub+5, tmp);
 			nbiot_rx_byte = atoi(rx_byte);
 			net2tap++;
-			do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nbiot_rx_byte);
+			do_debug("NET2TAP %lu: Read %d bytes from the NBIOT network\n", net2tap, nbiot_rx_byte);
 			/*
 			if(nbiot_rx_byte / 2 != 0){
 				printf("nbiot rx odd bytes! Wrong");
@@ -520,7 +521,7 @@ int main(int argc, char *argv[]) {
 			memset(rx_buffer_ascii, 0, BUFSIZE*2);
 			memset(rx_buffer, 0, BUFSIZE);
 			memmove(rx_buffer_ascii, findcolon+1, nbiot_rx_byte);
-			
+			int flag = 1;
 			for(int i = 0; i < nbiot_rx_byte / 2; i++){
 				//rx_buffer[i] = 16 * rx_buffer_ascii[2*i] + rx_buffer_ascii[2*i+1];
 				if(rx_buffer_ascii[2*i] >= 48 && rx_buffer_ascii[2*i] <= 57)
@@ -529,6 +530,9 @@ int main(int argc, char *argv[]) {
 					rx_buffer[i] += 16 * (rx_buffer_ascii[2*i] - 55);
 				else {
 					printf("\nnbiot rx invalid char! %d\n", rx_buffer_ascii[2*i]);
+					nbiot_rx_err_num ++;
+					flag = 0;
+					goto NBIOT_CONT;
 					//exit(1);
 				}
 				if(rx_buffer_ascii[2*i+1] >= 48 && rx_buffer_ascii[2*i+1] <= 57)
@@ -538,11 +542,17 @@ int main(int argc, char *argv[]) {
 				else {
 					printf("\nnbiot rx invalid char! %d\n", rx_buffer_ascii[2*i+1]);
 					//exit(1);
+					nbiot_rx_err_num ++;
+					flag = 0;
+					goto NBIOT_CONT;
 				}
-				
 			}			
 			nwrite = cwrite(tap_fd, rx_buffer, nbiot_rx_byte/2);
-			
+			NBIOT_CONT:
+			if(flag)
+				do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+			else 
+				do_debug("NBIOT_RX_ERR count: %lu\n", nbiot_rx_err_num);
 		}  
 	  }
 	}
