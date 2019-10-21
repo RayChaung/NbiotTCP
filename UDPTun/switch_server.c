@@ -25,8 +25,8 @@ int main(int argc , char *argv[])
 	int map_len = 0;
 	int nread = 0, nwrite = 0;
 	//debug
-	FILE* debugfd;
-	debugfd = fopen("/home/gemproject/tun0411081/switch.txt", "w");
+	//FILE* debugfd;
+	//debugfd = fopen("/home/gemproject/tun0411081/switch.txt", "w");
 	//
 	if ( (fd_nbiot = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("nbiot socket()");
@@ -103,8 +103,8 @@ int main(int argc , char *argv[])
 				map_len ++;
 			}
 			else{
-				fwrite(buffer, 1, nread, debugfd);
-				fflush(debugfd);
+				//fwrite(buffer, 1, nread, debugfd);
+				//fflush(debugfd);
 				//check packet length
 				char a[5];
 				memcpy(a, &buffer[4],4);
@@ -173,8 +173,8 @@ CHECK_ANO_FD:
 				map_len ++;
 			}
 			else{
-				fwrite(buffer, 1, nread, debugfd);
-				fflush(debugfd);
+				//fwrite(buffer, 1, nread, debugfd);
+				//fflush(debugfd);
 				//check packet length
 				char a[5];
 				memcpy(a, &buffer[4],4);
