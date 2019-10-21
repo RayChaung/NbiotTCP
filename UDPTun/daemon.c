@@ -38,10 +38,10 @@ char ATcommands[15][50] = {
 			   "AT+CIPSHUT\r",
 			   "AT+CIPSTART=\"udp\",\"", 
 			   "AT+CIPSEND?\r",
+			   "AT+CIPSPRT=2\r",
 			   "AT+CIPSEND\r",
 			   "+++192.168.0.1\x1a",
-			   "AT\r",
-			   "AT\r",
+			   "ATE0\r",
 			   "AT\r"};
 int command = 0;
 //"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", 
@@ -443,11 +443,11 @@ int main(int argc, char *argv[]) {
 	  /* Rpi read packet from nbiot*/
 	  if(cliserv == CLIENT){
 		memset(buffer_ascii, 0, BUFSIZE*2);
-		usleep(50*1000);
+		usleep(100*1000);
 		len = read(net_fd, buffer_ascii, BUFSIZE*2);
 		if(len == -1)
 			printf("error when reading\n");
-		printf("read:%s\n", buffer_ascii); 
+		printf("read:%s\n\n", buffer_ascii); 
 		fflush(stdout);
 		
 	  }
