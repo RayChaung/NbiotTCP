@@ -68,8 +68,8 @@ int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
         // disable IGNBRK for mismatched speed tests; otherwise receive break
         // as \000 chars
         tty.c_iflag &= ~IGNBRK;         // disable break processing
-        tty.c_lflag = 0;                // no signaling chars, no echo,
-                                        // no canonical processing
+        tty.c_lflag |= (ICANON);                // no signaling chars, no echo,
+                                        //  canonical processing
         tty.c_oflag &= ~OPOST;			//No Output Processing
         tty.c_cc[VMIN]  = (1 == isBlockingMode) ? 1 : 0;            // read doesn't block
         //tty.c_cc[VMIN]  =  1 ;            // read doesn't block
@@ -443,8 +443,7 @@ int main(int argc, char *argv[]) {
 	  /* Rpi read packet from nbiot*/
 	  if(cliserv == CLIENT){
 		memset(buffer_ascii, 0, BUFSIZE*2);
-		usleep(100*1000);
-		len = read(net_fd, buffer_ascii, BUFSIZE*2);
+		len = read(net_fd, buffer_ascii, 1412); //1412  // 1400 + 10 + 2 (\r\n )
 		if(len == -1)
 			printf("error when reading\n");
 		printf("read:%s\n\n", buffer_ascii); 
@@ -552,7 +551,7 @@ int main(int argc, char *argv[]) {
 			if(flag)
 				do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
 			else 
-				do_debug("NBIOT_RX_ERR count: %lu\n", nbiot_rx_err_num);
+				do_debug("NET2TAP %lu: NBIOT_RX_ERR count: %lu\n", net2tap, nbiot_rx_err_num);
 		}  
 	  }
 	}
