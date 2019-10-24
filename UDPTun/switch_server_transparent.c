@@ -20,8 +20,9 @@ int main(int argc , char *argv[])
 	struct sockaddr_in nbiot, host, client, nbiot_DST, host_DST;
 	int fd_nbiot, fd_host, maxfd, optval = 1;
 	int rv_len = 0;
-	char pub_priv_map[100][2][16]={0};
-	unsigned short int port[100]; 
+	char publicip[100][16]={0};
+	uint8_t  privateip[100][4] = {0};
+	uint16_t port[100]; 
 	int map_len = 0;
 	int nread = 0, nwrite = 0;
 	//debug
@@ -85,55 +86,56 @@ int main(int argc , char *argv[])
 					goto CHECK_ANO_FD;
 				}
 				if(ntohs(client.sin_port) == 0) goto CHECK_ANO_FD;
-				int flag = 0;
-				for(int i = 0; i< map_len; i++){
-					if(strcmp(&buffer[3], pub_priv_map[i][1]) == 0){
-						printf("private ip alreadly in used\n");
-						flag = 1;
-						break;
-					}
+				//check is there already a private ip
+				uint8_t priv_check[4] = {0};
+				char *pch;
+				pch = strtok(buffer+3, ".");
+				int i = 0, repeat = 0;
+				while(pch != NULL && i < 4){
+					priv_check[i] = atoi(pch);
+					i++;
+					pch = strtok(NULL, ".");
 				}
-				if(flag==1) goto CHECK_ANO_FD;
+				for(i = 0; i < map_len; i++){
+					if(privateip[i][0] == priv_check[0] && privateip[i][1] == priv_check[1] && privateip[i][2] == priv_check[2] && privateip[i][3] == priv_check[3])
+						repeat = 1;
+				}
+				if(repeat == 1){
+					printf("private ip already in used\n");
+					goto CHECK_ANO_FD;
+				}
+				//store privateip and publicip
 				inet_ntop(AF_INET, &client.sin_addr, buff, BUFSIZE);
-				strcpy(pub_priv_map[map_len][0], buff);
-				memcpy(pub_priv_map[map_len][1], &buffer[3],strlen(buffer)-3);
-				pub_priv_map[map_len][1][strlen(buffer)-3] = '\0';
+				strcpy(publicip[map_len], buff);
+				privateip[map_len][0] = priv_check[0];
+				privateip[map_len][1] = priv_check[1];
+				privateip[map_len][2] = priv_check[2];
+				privateip[map_len][3] = priv_check[3];
 				port[map_len] = ntohs(client.sin_port);
-				printf("host public ip: %s\tprivate ip : %s\tport#%d\n", pub_priv_map[map_len][0], pub_priv_map[map_len][1],port[map_len]);
+				printf("host public ip: %s\tprivate ip : %d %d %d %d\tport#%d\n", publicip[map_len], privateip[map_len][0], privateip[map_len][1], privateip[map_len][2], privateip[map_len][3], port[map_len]);
 				map_len ++;
 			}
 			else{
 				fwrite(buffer, 1, nread, debugfd);
 				fflush(debugfd);
 				//check packet length
-				char a[5];
-				memcpy(a, &buffer[4],4);
-				a[4] = '\0';
-				if ( strtol(a, NULL, 16) * 2  != nread){
+				if ( (buffer[2] * 256 + buffer[3])  != nread){
 					printf("wrong ip packet length\n");
-					goto CHECK_ANO_FD;;
+					continue;
 				}
 				//parse tun private ip address   ex : C0,A8,00,01 => 192.168.0.1 
-				char priv_ip[16] = "", ip_ascii[3], tmp[4];
-				int priv_ip_len = 0;
-				for(int i = 0; i < 4; i++){
-					memcpy(ip_ascii, &buffer[32+2*i], 2);
-					ip_ascii[2] = '\0';
-					sprintf(tmp, "%d", strtol(ip_ascii, NULL, 16));
-					strcat(priv_ip, tmp);
-					if(i != 3)strcat(priv_ip,".");
-				}
 				for(int i = 0; i < map_len; i++){
-					if(strcmp(priv_ip, pub_priv_map[i][1]) == 0){
-						//printf("match %s\t port#%d\n",pub_priv_map[i][0], port[i]);
-						memset(&nbiot_DST, 0, sizeof(nbiot_DST));
-						nbiot_DST.sin_family = AF_INET;
-						nbiot_DST.sin_addr.s_addr = inet_addr(pub_priv_map[i][0]);
-						nbiot_DST.sin_port = htons(port[i]);
-						if((nwrite=sendto(fd_nbiot, buffer, nread, 0, (const struct sockaddr *) &nbiot_DST, sizeof(nbiot_DST))) < 0){
+					if(privateip[i][0] == buffer[16] && privateip[i][1] == buffer[17] && privateip[i][2] == buffer[18] && privateip[i][3] == buffer[19]){
+						//printf("match %s\t port#%d\n",publicip[i], port[i]);
+						memset(&host_DST, 0, sizeof(host_DST));
+						host_DST.sin_family = AF_INET;
+						host_DST.sin_addr.s_addr = inet_addr(publicip[i]);
+						host_DST.sin_port = htons(port[i]);
+						if((nwrite=sendto(fd_nbiot, buffer, nread, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
 							perror("send nbiot to host");
 							exit(1);
 						}
+						//printf("write %d bytes to host\n", nwrite);
 						break;
 					}	
 				}	
@@ -155,50 +157,49 @@ CHECK_ANO_FD:
 				}
 				if(ntohs(client.sin_port) == 0) continue;
 				//check is there already a private ip
-				int flag = 0;
-				for(int i = 0; i< map_len; i++){
-					if(strcmp(&buffer[3], pub_priv_map[i][1]) == 0){
-						printf("private ip alreadly in used\n");
-						flag = 1;
-						break;
-					}
+				uint8_t priv_check[4] = {0};
+				char *pch;
+				pch = strtok(buffer+3, ".");
+				int i = 0, repeat = 0;
+				while(pch != NULL && i < 4){
+					priv_check[i] = atoi(pch);
+					i++;
+					pch = strtok(NULL, ".");
 				}
-				if(flag==1) continue;
+				for(i = 0; i < map_len; i++){
+					if(privateip[i][0] == priv_check[0] && privateip[i][1] == priv_check[1] && privateip[i][2] == priv_check[2] && privateip[i][3] == priv_check[3])
+						repeat = 1;
+				}
+				if(repeat == 1){
+					printf("private ip already in used\n");
+					continue;
+				}
+				//store privateip and publicip
 				inet_ntop(AF_INET, &client.sin_addr, buff, BUFSIZE);
-				strcpy(pub_priv_map[map_len][0], buff);
-				memcpy(pub_priv_map[map_len][1], &buffer[3],strlen(buffer)-3);
-				pub_priv_map[map_len][1][strlen(buffer)-3] = '\0';
+				strcpy(publicip[map_len], buff);
+				privateip[map_len][0] = priv_check[0];
+				privateip[map_len][1] = priv_check[1];
+				privateip[map_len][2] = priv_check[2];
+				privateip[map_len][3] = priv_check[3];
 				port[map_len] = ntohs(client.sin_port);
-				printf("nbiot public ip: %s\tprivate ip : %s\tport#%d\n", pub_priv_map[map_len][0], pub_priv_map[map_len][1],port[map_len]);
+				printf("nbiot public ip: %s\tprivate ip : %d %d %d %d\tport#%d\n", publicip[map_len], privateip[map_len][0], privateip[map_len][1], privateip[map_len][2], privateip[map_len][3], port[map_len]);
 				map_len ++;
 			}
 			else{
 				fwrite(buffer, 1, nread, debugfd);
 				fflush(debugfd);
 				//check packet length
-				char a[5];
-				memcpy(a, &buffer[4],4);
-				a[4] = '\0';
-				if ( strtol(a, NULL, 16) * 2  != nread){
+				if ( (buffer[2] * 256 + buffer[3])  != nread){
 					printf("wrong ip packet length\n");
 					continue;
 				}
 				//parse tun private ip address   ex : C0,A8,00,01 => 192.168.0.1 
-				char priv_ip[16] = "", ip_ascii[3], tmp[4];
-				int priv_ip_len = 0;
-				for(int i = 0; i < 4; i++){
-					memcpy(ip_ascii, &buffer[32+2*i], 2);
-					ip_ascii[2] = '\0';
-					sprintf(tmp, "%d", strtol(ip_ascii, NULL, 16));
-					strcat(priv_ip, tmp);
-					if(i != 3)strcat(priv_ip,".");
-				}
 				for(int i = 0; i < map_len; i++){
-					if(strcmp(priv_ip, pub_priv_map[i][1]) == 0){
-						//printf("match %s\t port#%d\n",pub_priv_map[i][0], port[i]);
+					if(privateip[i][0] == buffer[16] && privateip[i][1] == buffer[17] && privateip[i][2] == buffer[18] && privateip[i][3] == buffer[19]){
+						//printf("match %s\t port#%d\n",publicip[i], port[i]);
 						memset(&host_DST, 0, sizeof(host_DST));
 						host_DST.sin_family = AF_INET;
-						host_DST.sin_addr.s_addr = inet_addr(pub_priv_map[i][0]);
+						host_DST.sin_addr.s_addr = inet_addr(publicip[i]);
 						host_DST.sin_port = htons(port[i]);
 						if((nwrite=sendto(fd_host, buffer, nread, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
 							perror("send nbiot to host");
@@ -209,6 +210,7 @@ CHECK_ANO_FD:
 					}	
 				}	
 			}
+			
 		}
 		
 	}
