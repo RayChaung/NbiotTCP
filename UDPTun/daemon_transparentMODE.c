@@ -27,10 +27,11 @@
 #define SERVER 1
 #define PORT 55555
 /*serial setup and read write*/
-char ATcommands[10][50] = {
-			   "AT\r",
+char ATcommands[11][50] = {
+			   "AT+IFC=2,2\r",
 			   "AT+CPIN?\r",
 			   "AT+CIPMODE=1\r",
+			   "AT+CIPCCFG=5,2,1024,0,0,1460,50\r",
 			   "AT+CGDCONT=1,\"ip\",\"\"\r", 
 			   "AT+CSTT=\"internet.iot\"\r",  
 			   "AT+CIICR\r", 
@@ -39,7 +40,7 @@ char ATcommands[10][50] = {
 			   "AT+CIPSTART=\"udp\",\"", 
 			   "+++192.168.0.1"};
 int command = 0;
-//"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", 
+//"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r",   CIPCCFG: 5,1,1024,1,0,1460,50
 int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
 {
   int isBlockingMode;
@@ -97,14 +98,14 @@ void sendThread(int serialfd)
  
  fd = serialfd;
  
- while(command < 10)
+ while(command < 11)
  {
   snprintf(&sendBuff[0], MAX_STR_LEN, ATcommands[command]);
   write(fd, &sendBuff[0], strlen(&sendBuff[0]) ); 
  
   // sleep enough to transmit the length plus receive 25:  
   // approx 100 uS per char transmit
-  if(command == 9)
+  if(command == 10)
 	  break;
   else command ++;
   usleep((strlen(&sendBuff[0]) + 25) * 100);     
@@ -323,10 +324,10 @@ int main(int argc, char *argv[]) {
 	}
 	char tmp[6];
 	sprintf(tmp, "%d", port);
-	strcat(ATcommands[8], remote_ip);
-	strcat(ATcommands[8], "\",");
-	strcat(ATcommands[8], tmp);
-	ATcommands[8][strlen(ATcommands[8])] = '\r';
+	strcat(ATcommands[9], remote_ip);
+	strcat(ATcommands[9], "\",");
+	strcat(ATcommands[9], tmp);
+	ATcommands[9][strlen(ATcommands[9])] = '\r';
 	sendThread(net_fd);
 	
     

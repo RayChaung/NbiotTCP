@@ -93,14 +93,14 @@ int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
 }/*SetInterfaceAttribs*/
 
 
-void *sendThread(void *parameters)
+void sendThread(int serialfd)
 {
  char sendBuff[MAX_STR_LEN];
  memset(&sendBuff[0], 0, MAX_STR_LEN);
  
  int fd;
  
- fd = *((int*)parameters);
+ fd = serialfd;
  
  while(command < 15)
  {
@@ -113,10 +113,9 @@ void *sendThread(void *parameters)
 	  break;
   else command ++;
   usleep((strlen(&sendBuff[0]) + 25) * 100);     
-  usleep(500*10000);        
+  usleep(50*10000);        
  }/*while*/
- printf("ready to send at command data\n");
- pthread_exit(0); 
+ printf("ready to send at command data\n"); 
 }/*sendThread */
 
 
@@ -183,7 +182,7 @@ int cwrite(int fd, char *buf, int n){
 
   if((nwrite=write(fd, buf, n)) < 0){
     perror("Writing data");
-    exit(1);
+    //exit(1);
   }
   return nwrite;
 }
@@ -249,8 +248,7 @@ int main(int argc, char *argv[]) {
   int cliserv = -1;    /* must be specified on cmd line */
   int rv_len;
   progname = argv[0];
-  //serial variable
-  pthread_t sendThread_t;
+
   
   
   
@@ -335,7 +333,7 @@ int main(int argc, char *argv[]) {
 	strcat(ATcommands[8], "\",");
 	strcat(ATcommands[8], tmp);
 	ATcommands[8][strlen(ATcommands[8])] = '\r';
-	pthread_create(&sendThread_t, NULL, (void *)sendThread, (void *)&net_fd);
+	sendThread(net_fd);
 	
     
   } 
@@ -393,7 +391,7 @@ int main(int argc, char *argv[]) {
       if(cliserv == CLIENT){
 		// Rpi copy tun/tap packet to nbiot
 		write(net_fd, "AT+CIPSEND\r", 11);
-		usleep(500*100);
+		usleep(5*1000);
 		memset(buffer_ascii, 0, BUFSIZE*2);
 		for (int i = 0; i < nread; i++){
 			if((buffer[i] / 16)<10)
@@ -409,7 +407,7 @@ int main(int argc, char *argv[]) {
 		
 		buffer_ascii[nread*2] = 26; //^Z to terminate CIPSEND
 		nwrite = write(net_fd, buffer_ascii, nread*2 + 1 );
-		usleep(500*100);
+		usleep(50*1000);
 	  }
       else{
 		//cliserv == SERVER 

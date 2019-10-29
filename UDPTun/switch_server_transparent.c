@@ -120,7 +120,7 @@ int main(int argc , char *argv[])
 				fflush(debugfd);
 				//check packet length
 				if ( (buffer[2] * 256 + buffer[3])  != nread){
-					printf("wrong ip packet length\n");
+					printf("from host: wrong ip packet length\n");
 					continue;
 				}
 				//parse tun private ip address   ex : C0,A8,00,01 => 192.168.0.1 
@@ -190,7 +190,7 @@ CHECK_ANO_FD:
 				fflush(debugfd);
 				//check packet length
 				if ( (buffer[2] * 256 + buffer[3])  != nread){
-					printf("wrong ip packet length\n");
+					printf("from nbiot: wrong ip packet length: %d != %d \n", (buffer[2] * 256 + buffer[3]), nread);
 					continue;
 				}
 				//parse tun private ip address   ex : C0,A8,00,01 => 192.168.0.1 

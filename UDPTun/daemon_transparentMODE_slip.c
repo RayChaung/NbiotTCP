@@ -27,10 +27,11 @@
 #define SERVER 1
 #define PORT 55555
 /*serial setup and read write*/
-char ATcommands[10][50] = {
-			   "AT\r",
+char ATcommands[11][50] = {
+			   "AT+IFC=2,2\r",
 			   "AT+CPIN?\r",
 			   "AT+CIPMODE=1\r",
+			   "AT+CIPCCFG=5,2,1024,0,0,1460,50\r",
 			   "AT+CGDCONT=1,\"ip\",\"\"\r", 
 			   "AT+CSTT=\"internet.iot\"\r",  
 			   "AT+CIICR\r", 
@@ -97,14 +98,14 @@ void sendThread(int serialfd)
  
  fd = serialfd;
  
- while(command < 10)
+ while(command < 11)
  {
   snprintf(&sendBuff[0], MAX_STR_LEN, ATcommands[command]);
   write(fd, &sendBuff[0], strlen(&sendBuff[0]) ); 
  
   // sleep enough to transmit the length plus receive 25:  
   // approx 100 uS per char transmit
-  if(command == 9)
+  if(command == 10)
 	  break;
   else command ++;
   usleep((strlen(&sendBuff[0]) + 25) * 100);     
@@ -323,10 +324,10 @@ int main(int argc, char *argv[]) {
 	}
 	char tmp[6];
 	sprintf(tmp, "%d", port);
-	strcat(ATcommands[8], remote_ip);
-	strcat(ATcommands[8], "\",");
-	strcat(ATcommands[8], tmp);
-	ATcommands[8][strlen(ATcommands[8])] = '\r';
+	strcat(ATcommands[9], remote_ip);
+	strcat(ATcommands[9], "\",");
+	strcat(ATcommands[9], tmp);
+	ATcommands[9][strlen(ATcommands[9])] = '\r';
 	sendThread(net_fd);
 	
     
@@ -396,7 +397,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 	  }
-	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
+	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nread);
     }
 
     if(FD_ISSET(net_fd, &rd_set)) {
@@ -410,6 +411,8 @@ int main(int argc, char *argv[]) {
 			printf("error when reading\n");
 		if(fliter_first == 1){
 		  fliter_first = 0;
+		  for(int i = 0; i< decode_len; i++)	printf("%02x",buffer[i]);
+		  printf("\n");
 		  continue; // at command will send noise at the beginning few seconds
 		}
 		if(encode_buffer[0] == SLIP_END && encode_buffer[nread-1] == SLIP_END)
@@ -430,7 +433,7 @@ int main(int argc, char *argv[]) {
 		for(int i = 0; i< decode_len; i++)	printf("%02x",buffer[i]);
 		printf("\n");
 		nwrite = cwrite(tap_fd, buffer, decode_len);
-		do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+		do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, decode_len);
 	  }
 	  else{  
 		  //cliserv == SERVER, host read packet from socket
@@ -442,7 +445,7 @@ int main(int argc, char *argv[]) {
 		  net2tap++;
 		  do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, decode_len);
 		  nwrite = cwrite(tap_fd, buffer, decode_len );
-		  do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+		  do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, decode_len);
 	  } 
 	  	  
 	}
