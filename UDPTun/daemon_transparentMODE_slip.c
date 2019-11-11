@@ -247,6 +247,7 @@ int main(int argc, char *argv[]) {
   int fliter_first = 1;
   unsigned long encode_len = 0, decode_len = 0;
   int prev_len = 0;
+  int index, next_index;
   /* Check command line options */
   while((option = getopt(argc, argv, "i:s:c:p:hd")) > 0) {
     switch(option) {
@@ -379,11 +380,11 @@ int main(int argc, char *argv[]) {
 	  printf("read from tap interface\n");
       memset(buffer, 0, BUFSIZE);
 	  memset(encode_buffer, 0, BUFSIZE*2);
+	  usleep(100*1000);
 	  nread = cread(tap_fd, buffer, BUFSIZE);
 	  
 	  tap2net++;
       do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
-		//printf("tap interface trigger\n");
       /* write packet to network*/
       if(cliserv == CLIENT){
 		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);
@@ -397,43 +398,58 @@ int main(int argc, char *argv[]) {
 		}
 		
 	  }
-	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nread);
+	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
     }
 
     if(FD_ISSET(net_fd, &rd_set)) {
 	  /* Rpi read packet from nbiot*/
-	  memset(buffer, 0, BUFSIZE);
 	  memset(encode_buffer, 0, BUFSIZE*2);
 	  printf("read from net interface\n");
 	  if(cliserv == CLIENT){
 		nread  = read(net_fd, encode_buffer, BUFSIZE*2);
+		printf("nread: %d, prev_len: %d\n",nread, prev_len);
 		if(nread == -1)
 			printf("error when reading\n");
 		if(fliter_first == 1){
 		  fliter_first = 0;
-		  for(int i = 0; i< decode_len; i++)	printf("%02x",buffer[i]);
+		  for(int i = 0; i< nread; i++)	printf("%02x",encode_buffer[i]);
 		  printf("\n");
 		  continue; // at command will send noise at the beginning few seconds
 		}
-		if(encode_buffer[0] == SLIP_END && encode_buffer[nread-1] == SLIP_END)
-			slip_decode(encode_buffer, nread, buffer, BUFSIZE, &decode_len);
-		else if(encode_buffer[0] == SLIP_END)
-		{
-			memcpy(prev_encode_buffer, encode_buffer, nread);
-			prev_len = nread;
-			continue;
+		memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
+		//decode [prev_encode_buffer + encode_buffer]
+		for(index = 0; index < nread+prev_len; index++){
+			if(prev_encode_buffer[index] == SLIP_END){
+				for(next_index = index+1; next_index < nread+prev_len; next_index++){
+					if(prev_encode_buffer[next_index] == SLIP_END){
+						net2tap++;
+						do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, next_index-index+1);
+						for(int i = index; i<= next_index; i++)	printf("%02x",prev_encode_buffer[i]);
+						printf("\n");
+						memset(buffer, 0, BUFSIZE);
+						slip_decode(&prev_encode_buffer[index], next_index-index+1, buffer, BUFSIZE, &decode_len);
+						nwrite = cwrite(tap_fd, buffer, decode_len);
+						do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+						break;
+					}
+				}
+				if(next_index == nread+prev_len){
+					//cannot find end of frame
+					//store it to prev_encode_buffer
+					//memset(prev_encode_buffer, 0, BUFSIZE*2);
+					memmove(prev_encode_buffer, prev_encode_buffer+index, nread-index);
+					prev_len = nread-index;
+					break;
+				}
+				else if(next_index == nread+prev_len-1){
+					memset(prev_encode_buffer, 0, BUFSIZE*2);
+					prev_len = 0;
+					break;
+				}
+				else index = next_index;
+			}
+			
 		}
-		else if(encode_buffer[nread-1] == SLIP_END)
-		{
-			memcpy(prev_encode_buffer+prev_len, encode_buffer, nread);
-			slip_decode(prev_encode_buffer, nread+prev_len, buffer, BUFSIZE, &decode_len);
-		}
-		net2tap++;
-		do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, decode_len);
-		for(int i = 0; i< decode_len; i++)	printf("%02x",buffer[i]);
-		printf("\n");
-		nwrite = cwrite(tap_fd, buffer, decode_len);
-		do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, decode_len);
 	  }
 	  else{  
 		  //cliserv == SERVER, host read packet from socket

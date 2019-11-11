@@ -37,5 +37,5 @@ for daemon:
 -d: outputs debug information while running
 
 for switch:
-	$ ./switch
+	$ ./switch <Port for nbiot> <Port for host>
 
