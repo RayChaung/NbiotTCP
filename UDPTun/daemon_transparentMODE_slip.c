@@ -31,7 +31,7 @@ char ATcommands[11][50] = {
 			   "AT+IFC=2,2\r",
 			   "AT+CPIN?\r",
 			   "AT+CIPMODE=1\r",
-			   "AT+CIPCCFG=5,2,1024,0,0,1460,50\r",
+			   "AT+CIPCCFG=5,1,1400,0,0,1460,50\r",
 			   "AT+CGDCONT=1,\"ip\",\"\"\r", 
 			   "AT+CSTT=\"internet.iot\"\r",  
 			   "AT+CIICR\r", 
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
   char if_name[IFNAMSIZ] = "";
   int maxfd;
   int nread, nwrite;
-  unsigned char buffer[BUFSIZE], encode_buffer[BUFSIZE*2], prev_encode_buffer[BUFSIZE*2];
+  unsigned char buffer[BUFSIZE], encode_buffer[BUFSIZE*2], prev_encode_buffer[BUFSIZE*4];
   struct sockaddr_in server, client;
   unsigned char remote_ip[16] = "";            /* dotted quad IP string */
   unsigned short int port = PORT;
@@ -356,7 +356,7 @@ int main(int argc, char *argv[]) {
   
   /* use select() to handle two descriptors at once */
   maxfd = (tap_fd > net_fd)?tap_fd:net_fd;
-  memset(prev_encode_buffer, 0, BUFSIZE*2);
+  memset(prev_encode_buffer, 0, BUFSIZE*4);
   while(1) {
     int ret;
     fd_set rd_set;
@@ -380,15 +380,16 @@ int main(int argc, char *argv[]) {
 	  printf("read from tap interface\n");
       memset(buffer, 0, BUFSIZE);
 	  memset(encode_buffer, 0, BUFSIZE*2);
-	  usleep(100*1000);
+	  //usleep(100*1000);
 	  nread = cread(tap_fd, buffer, BUFSIZE);
-	  
+	  printf("tap : %d\n", nread);
 	  tap2net++;
       do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
       /* write packet to network*/
       if(cliserv == CLIENT){
 		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);
 		nwrite = write(net_fd, encode_buffer, encode_len);
+		usleep(100*1000);
 	  }
       else{
 		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);	
@@ -407,7 +408,7 @@ int main(int argc, char *argv[]) {
 	  printf("read from net interface\n");
 	  if(cliserv == CLIENT){
 		nread  = read(net_fd, encode_buffer, BUFSIZE*2);
-		printf("nread: %d, prev_len: %d\n",nread, prev_len);
+		printf("nread: %d, \t\t\tprev_len: %d\n",nread, prev_len);
 		if(nread == -1)
 			printf("error when reading\n");
 		if(fliter_first == 1){
@@ -435,14 +436,13 @@ int main(int argc, char *argv[]) {
 				}
 				if(next_index == nread+prev_len){
 					//cannot find end of frame
-					//store it to prev_encode_buffer
-					//memset(prev_encode_buffer, 0, BUFSIZE*2);
-					memmove(prev_encode_buffer, prev_encode_buffer+index, nread-index);
-					prev_len = nread-index;
+					//store the rest to the start of prev_encode_buffer
+					memmove(prev_encode_buffer, prev_encode_buffer+index, nread+prev_len-index);
+					prev_len = nread+prev_len-index;
 					break;
 				}
 				else if(next_index == nread+prev_len-1){
-					memset(prev_encode_buffer, 0, BUFSIZE*2);
+					memset(prev_encode_buffer, 0, BUFSIZE*4);
 					prev_len = 0;
 					break;
 				}
@@ -457,11 +457,40 @@ int main(int argc, char *argv[]) {
 			perror("Recvfrom data");
 			exit(1);
 		  }
-		  slip_decode(encode_buffer, nread, buffer, BUFSIZE, &decode_len);
-		  net2tap++;
-		  do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, decode_len);
-		  nwrite = cwrite(tap_fd, buffer, decode_len );
-		  do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, decode_len);
+		  printf("recvfrom: %d, \t\t\tprev_len: %d\n",nread, prev_len);
+		  memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
+		//decode [prev_encode_buffer + encode_buffer]
+		for(index = 0; index < nread+prev_len; index++){
+			if(prev_encode_buffer[index] == SLIP_END){
+				for(next_index = index+1; next_index < nread+prev_len; next_index++){
+					if(prev_encode_buffer[next_index] == SLIP_END){
+						net2tap++;
+						do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, next_index-index+1);
+						for(int i = index; i<= next_index; i++)	printf("%02x",prev_encode_buffer[i]);
+						printf("\n");
+						memset(buffer, 0, BUFSIZE);
+						slip_decode(&prev_encode_buffer[index], next_index-index+1, buffer, BUFSIZE, &decode_len);
+						nwrite = cwrite(tap_fd, buffer, decode_len);
+						do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+						break;
+					}
+				}
+				if(next_index == nread+prev_len){
+					//cannot find end of frame
+					//store the rest to the start of prev_encode_buffer
+					memmove(prev_encode_buffer, prev_encode_buffer+index, nread+prev_len-index);
+					prev_len = nread+prev_len-index;
+					break;
+				}
+				else if(next_index == nread+prev_len-1){
+					memset(prev_encode_buffer, 0, BUFSIZE*4);
+					prev_len = 0;
+					break;
+				}
+				else index = next_index;
+			}
+			
+		}
 	  } 
 	  	  
 	}
