@@ -13,10 +13,10 @@
 #define TRUE 1 
 #define FALSE 0 
 #define PORT 8888 
-#define BUFSIZE 1600	
+#define BUFSIZE 1400	
 int main(int argc , char *argv[]) 
 {
-	unsigned char encode_buffer[BUFSIZE];
+	unsigned char buffer[BUFSIZE], encode_buffer[BUFSIZE*2], prev_encode_buffer[BUFSIZE*4];
 	char buff[BUFSIZE];
 	struct sockaddr_in nbiot, host, client, nbiot_DST, host_DST;
 	int fd_nbiot, fd_host, maxfd, optval = 1;
@@ -26,8 +26,10 @@ int main(int argc , char *argv[])
 	uint16_t port[100]; 
 	int map_len = 0;
 	int nread = 0, nwrite = 0;
-	unsigned long decode_len = 0;
-	
+	unsigned long encode_len = 0, decode_len = 0;
+	int prev_len = 0;
+	int index, next_index;
+	int foundEND;
 	if ( (fd_nbiot = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("nbiot socket()");
 		exit(1);
@@ -73,8 +75,8 @@ int main(int argc , char *argv[])
 		}
 		if(FD_ISSET(fd_host, &rd_set)) {
 			memset(buff, 0, BUFSIZE);
-			memset(encode_buffer, 0, BUFSIZE);
-			if((nread=recvfrom(fd_host, encode_buffer, BUFSIZE, 0, ( struct sockaddr *)&client, &rv_len)) < 0){
+			memset(encode_buffer, 0, BUFSIZE*2);
+			if((nread=recvfrom(fd_host, encode_buffer, BUFSIZE*2, 0, ( struct sockaddr *)&client, &rv_len)) < 0){
 				perror("Recvfrom data");
 				exit(1);
 			}
@@ -116,22 +118,36 @@ int main(int argc , char *argv[])
 			}
 			else{
 				printf("host packet length %d\n",  nread);
-				for(int i = 0;i < nread;i ++)printf("%02x",encode_buffer[i]); printf("\n");printf("\n");
-				memset(&host_DST, 0, sizeof(host_DST));
-				host_DST.sin_family = AF_INET;
-				host_DST.sin_addr.s_addr = inet_addr(publicip[1]);
-				host_DST.sin_port = htons(port[1]);
-				if((nwrite=sendto(fd_nbiot, encode_buffer, nread, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
-					perror("send host to nbiot");
-					exit(1);
-				}	
+				for(int i = 0;i < nread;i ++)printf("%02x",encode_buffer[i]); printf("\n");printf("\n");	
+				slip_decode(encode_buffer, nread, buffer, BUFSIZE, &decode_len);
+				//check host packet length
+				if ( (buffer[2] * 256 + buffer[3])  != decode_len){
+					printf("from host wrong ip packet length\n");
+					continue;
+				}
+				//parse tun private ip address   ex : C0,A8,00,01 => 192.168.0.1 
+				for(int i = 0; i < map_len; i++){
+					if(privateip[i][0] == buffer[16] && privateip[i][1] == buffer[17] && privateip[i][2] == buffer[18] && privateip[i][3] == buffer[19]){
+						//printf("match %s\t port#%d\n",publicip[i], port[i]);
+						memset(&host_DST, 0, sizeof(host_DST));
+						host_DST.sin_family = AF_INET;
+						host_DST.sin_addr.s_addr = inet_addr(publicip[i]);
+						host_DST.sin_port = htons(port[i]);
+						if((nwrite=sendto(fd_nbiot, encode_buffer, nread, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
+							perror("error: send nbiot to host\n");
+							exit(1);
+						}
+						break;
+					}	
+				}
+				
 			}
 		}
 CHECK_ANO_FD:		
 		if(FD_ISSET(fd_nbiot, &rd_set)) {
 			memset(buff, 0, BUFSIZE);
-			memset(encode_buffer, 0, BUFSIZE);
-			if((nread=recvfrom(fd_nbiot, encode_buffer, BUFSIZE, 0, ( struct sockaddr *)&client, &rv_len)) < 0){
+			memset(encode_buffer, 0, BUFSIZE*2);
+			if((nread=recvfrom(fd_nbiot, encode_buffer, BUFSIZE*2, 0, ( struct sockaddr *)&client, &rv_len)) < 0){
 				perror("Recvfrom data");
 				exit(1);
 			}
@@ -173,14 +189,51 @@ CHECK_ANO_FD:
 			}
 			else{
 				printf("nbiot packet length %d\n",  nread);
-                for(int i = 0;i < nread;i ++)printf("%02x",encode_buffer[i]); printf("\n");printf("\n");
-				memset(&host_DST, 0, sizeof(host_DST));
-				host_DST.sin_family = AF_INET;
-				host_DST.sin_addr.s_addr = inet_addr(publicip[0]);
-				host_DST.sin_port = htons(port[0]);
-				if((nwrite=sendto(fd_host, encode_buffer, nread, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
-					perror("send nbiot to host");
-					exit(1);
+                for(int i = 0;i < nread;i ++)printf("%02x",encode_buffer[i]); printf("\n");printf("\n");fflush(stdout);
+				
+				memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
+				foundEND = 0;
+				for(index = 0; index < nread+prev_len; index++){
+					if(prev_encode_buffer[index] == SLIP_END){
+						foundEND = 1;
+						for(next_index = index+1; next_index < nread+prev_len; next_index++){
+							if(prev_encode_buffer[next_index] == SLIP_END){
+								printf("send a packet %d bytes to the host\n", next_index-index+1);
+								for(int i = index; i<= next_index; i++)	printf("%02x",prev_encode_buffer[i]);printf("\n");
+								memset(buffer, 0, BUFSIZE);
+								slip_decode(&prev_encode_buffer[index], next_index-index+1, buffer, BUFSIZE, &decode_len);
+								memset(&host_DST, 0, sizeof(host_DST));
+								host_DST.sin_family = AF_INET;
+								host_DST.sin_addr.s_addr = inet_addr(publicip[0]);
+								host_DST.sin_port = htons(port[0]);
+								if((nwrite=sendto(fd_host, buffer, decode_len, 0, (const struct sockaddr *) &host_DST, sizeof(host_DST))) < 0){
+									perror("error: send nbiot to host\n");
+									exit(1);
+								}
+								break;
+							}
+						}
+						if(next_index == nread+prev_len){
+							//cannot find END
+							//store the rest to the start of prev_encode_buffer
+							memmove(prev_encode_buffer, prev_encode_buffer+index, nread+prev_len-index);
+							prev_len = nread+prev_len-index;
+							break;
+						}
+						else if(next_index == nread+prev_len-1){
+							//find END and finish reading prev_encode_buffer
+							memset(prev_encode_buffer, 0, BUFSIZE*4);
+							prev_len = 0;
+							break;
+						}
+						else index = next_index;
+					}
+					
+				}
+				if(foundEND == 0){
+					//no any END in prev_encode_buffer
+					memset(prev_encode_buffer, 0, BUFSIZE*4);
+					prev_len = 0;
 				}	
 			}
 			

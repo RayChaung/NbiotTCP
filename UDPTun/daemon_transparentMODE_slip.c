@@ -109,7 +109,7 @@ void sendThread(int serialfd)
 	  break;
   else command ++;
   usleep((strlen(&sendBuff[0]) + 25) * 100);     
-  usleep(50*10000); 
+  usleep(5000*1000); 
   printf("cmd%d\n",command);
  }/*while*/
  printf("ready to send at command data\n"); 
@@ -244,10 +244,11 @@ int main(int argc, char *argv[]) {
   int cliserv = -1;    /* must be specified on cmd line */
   int rv_len = 0;
   progname = argv[0];
-  int fliter_first = 1;
+  
   unsigned long encode_len = 0, decode_len = 0;
   int prev_len = 0;
   int index, next_index;
+  int foundEND;
   /* Check command line options */
   while((option = getopt(argc, argv, "i:s:c:p:hd")) > 0) {
     switch(option) {
@@ -408,24 +409,19 @@ int main(int argc, char *argv[]) {
 	  printf("read from net interface\n");
 	  if(cliserv == CLIENT){
 		//for mtu = 1200
-		usleep(50*1000)
+		usleep(50*1000);
 		nread  = read(net_fd, encode_buffer, BUFSIZE*2);
 		printf("nread: %d, \t\t\tprev_len: %d\n",nread, prev_len);
 		if(nread == -1)
 			printf("error when reading\n");
-		/*
-		if(fliter_first == 1){
-		  fliter_first = 0;
-		  for(int i = 0; i< nread; i++)	printf("%02x",encode_buffer[i]);
-		  printf("\n");
-		  continue; // at command will send noise at the beginning few seconds
-		}
-		*/
+
 		for(int i = 0; i < nread; i++)	printf("%02x",encode_buffer[i]); printf("\n");fflush(stdout);
 		memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
 		//decode [prev_encode_buffer + encode_buffer]
+		foundEND = 0;
 		for(index = 0; index < nread+prev_len; index++){
 			if(prev_encode_buffer[index] == SLIP_END){
+				foundEND = 1;
 				for(next_index = index+1; next_index < nread+prev_len; next_index++){
 					if(prev_encode_buffer[next_index] == SLIP_END){
 						net2tap++;
@@ -455,47 +451,24 @@ int main(int argc, char *argv[]) {
 			}
 			
 		}
+		if(foundEND == 0){
+			//no any END in prev_encode_buffer
+			memset(prev_encode_buffer, 0, BUFSIZE*4);
+			prev_len = 0;
+		}
+		
 	  }
 	  else{  
 		  //cliserv == SERVER, host read packet from socket
-		  if((nread=recvfrom(net_fd, encode_buffer, BUFSIZE*2, 0, ( struct sockaddr *)&server, &rv_len)) < 0){
+		  if((nread=recvfrom(net_fd, buffer, BUFSIZE, 0, ( struct sockaddr *)&server, &rv_len)) < 0){
 			perror("Recvfrom data");
 			exit(1);
 		  }
-		  printf("recvfrom: %d, \t\t\tprev_len: %d\n",nread, prev_len);
-		  memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
-		//decode [prev_encode_buffer + encode_buffer]
-		for(index = 0; index < nread+prev_len; index++){
-			if(prev_encode_buffer[index] == SLIP_END){
-				for(next_index = index+1; next_index < nread+prev_len; next_index++){
-					if(prev_encode_buffer[next_index] == SLIP_END){
-						net2tap++;
-						do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, next_index-index+1);
-						for(int i = index; i<= next_index; i++)	printf("%02x",prev_encode_buffer[i]);
-						printf("\n");
-						memset(buffer, 0, BUFSIZE);
-						slip_decode(&prev_encode_buffer[index], next_index-index+1, buffer, BUFSIZE, &decode_len);
-						nwrite = cwrite(tap_fd, buffer, decode_len);
-						do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
-						break;
-					}
-				}
-				if(next_index == nread+prev_len){
-					//cannot find end of frame
-					//store the rest to the start of prev_encode_buffer
-					memmove(prev_encode_buffer, prev_encode_buffer+index, nread+prev_len-index);
-					prev_len = nread+prev_len-index;
-					break;
-				}
-				else if(next_index == nread+prev_len-1){
-					memset(prev_encode_buffer, 0, BUFSIZE*4);
-					prev_len = 0;
-					break;
-				}
-				else index = next_index;
-			}
-			
-		}
+		  printf("recvfrom: %d\n",nread);
+		  net2tap++;
+		  nwrite = cwrite(tap_fd, buffer, nread);
+		  do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+		  
 	  } 
 	  	  
 	}
