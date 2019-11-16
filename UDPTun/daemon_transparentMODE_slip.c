@@ -22,7 +22,7 @@
 #include "slip.h" /* SLIP encode and decode*/
 #define MAX_STR_LEN 256
 /* buffer for reading from tun/tap interface, must be >= 1500 */
-#define BUFSIZE 800   
+#define BUFSIZE 1400   
 #define CLIENT 0
 #define SERVER 1
 #define PORT 55555
@@ -407,16 +407,21 @@ int main(int argc, char *argv[]) {
 	  memset(encode_buffer, 0, BUFSIZE*2);
 	  printf("read from net interface\n");
 	  if(cliserv == CLIENT){
+		//for mtu = 1200
+		usleep(50*1000)
 		nread  = read(net_fd, encode_buffer, BUFSIZE*2);
 		printf("nread: %d, \t\t\tprev_len: %d\n",nread, prev_len);
 		if(nread == -1)
 			printf("error when reading\n");
+		/*
 		if(fliter_first == 1){
 		  fliter_first = 0;
 		  for(int i = 0; i< nread; i++)	printf("%02x",encode_buffer[i]);
 		  printf("\n");
 		  continue; // at command will send noise at the beginning few seconds
 		}
+		*/
+		for(int i = 0; i < nread; i++)	printf("%02x",encode_buffer[i]); printf("\n");fflush(stdout);
 		memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
 		//decode [prev_encode_buffer + encode_buffer]
 		for(index = 0; index < nread+prev_len; index++){

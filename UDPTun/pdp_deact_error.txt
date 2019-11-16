@@ -1,0 +1,65 @@
+415445300d     => ATE0
+
+415456310d    => ATV1
+
+41542b434d45453d310d   =>  AT+CMEE=1
+
+415458340d    => ATE0
+
+41542643310d   => AT&C1
+
+415445300d    => ATE0
+
+41542b434d45453d310d   =>  AT+CMEE=1
+
+41542b43454d4f44453f0d  => AT+CEMODE?
+
+41542b43504d533f0d     => AT+CPMS?
+
+4154480d          =>   ATH
+
+41542b43545a553d310d    => AT+CTZU=1
+============================
+
+nbiot packet length 11
+41542b4946433d322c320d   => AT+IFC=2,2
+
+nbiot packet length 9
+41542b4350494e3f0d     => AT+CPIN?
+
+nbiot packet length 13
+41542b4349504d4f44453d310d   => AT+CIPMODE=1
+
+nbiot packet length 32
+41542b434950434346473d352c312c313430302c302c302c313436302c35300d
+
+nbiot packet length 21
+41542b434744434f4e543d312c226970222c22220d
+
+nbiot packet length 23
+41542b435354543d22696e7465726e65742e696f74220d
+
+nbiot packet length 9
+41542b43494943520d
+
+nbiot packet length 9
+41542b43494653520d
+
+nbiot packet length 11
+41542b434950534855540d
+
+nbiot packet length 40
+41542b43495053544152543d22756470222c223134302e3131332e32342e323135222c373737350d
+
+
+===========================
+
+mtu = 700 use scp:  host copy file from rpi : 6.2KB/s
+					rpi  copy file from host : 9.9KB/s	 
+					
+					
+mtu = 1200 use scp:  host copy file from rpi : 8.9KB/s
+					rpi  copy file from host : 12.5KB/s	
+
+					理論值是 1200B/0.1s => 12KB/s
+					
