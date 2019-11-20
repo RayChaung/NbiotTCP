@@ -188,7 +188,8 @@ CHECK_ANO_FD:
 				map_len ++;
 			}
 			else{
-				printf("nbiot packet length %d\n",  nread);
+				printf("nbiot packet length %d,\tprev_len = %d\n",  nread, prev_len);
+				for(int i = 0; i < prev_len; i++)printf("%02x",prev_encode_buffer[i]); printf("\t");
                 for(int i = 0;i < nread;i ++)printf("%02x",encode_buffer[i]); printf("\n");printf("\n");fflush(stdout);
 				
 				memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
@@ -196,6 +197,7 @@ CHECK_ANO_FD:
 				for(index = 0; index < nread+prev_len; index++){
 					if(prev_encode_buffer[index] == SLIP_END){
 						foundEND = 1;
+						if(prev_encode_buffer[index+1] == SLIP_END) index ++;
 						for(next_index = index+1; next_index < nread+prev_len; next_index++){
 							if(prev_encode_buffer[next_index] == SLIP_END){
 								printf("send a packet %d bytes to the host\n", next_index-index+1);

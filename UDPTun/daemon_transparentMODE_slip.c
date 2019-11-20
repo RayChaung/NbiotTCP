@@ -422,6 +422,7 @@ int main(int argc, char *argv[]) {
 		for(index = 0; index < nread+prev_len; index++){
 			if(prev_encode_buffer[index] == SLIP_END){
 				foundEND = 1;
+				if(prev_encode_buffer[index+1] == SLIP_END) index ++;
 				for(next_index = index+1; next_index < nread+prev_len; next_index++){
 					if(prev_encode_buffer[next_index] == SLIP_END){
 						net2tap++;
@@ -461,11 +462,11 @@ int main(int argc, char *argv[]) {
 	  else{  
 		  //cliserv == SERVER, host read packet from socket
 		  if((nread=recvfrom(net_fd, buffer, BUFSIZE, 0, ( struct sockaddr *)&server, &rv_len)) < 0){
-			perror("Recvfrom data");
+			perror("error : Recvfrom data");
 			exit(1);
 		  }
-		  printf("recvfrom: %d\n",nread);
 		  net2tap++;
+		  do_debug("NET2TAP %lu: Read %d bytes to the net interface\n", net2tap, nread);
 		  nwrite = cwrite(tap_fd, buffer, nread);
 		  do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
 		  
