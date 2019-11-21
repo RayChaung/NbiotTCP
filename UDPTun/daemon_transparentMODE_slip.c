@@ -31,7 +31,7 @@ char ATcommands[11][50] = {
 			   "AT+IFC=2,2\r",
 			   "AT+CPIN?\r",
 			   "AT+CIPMODE=1\r",
-			   "AT+CIPCCFG=5,1,1400,0,0,1460,50\r",
+			   "AT+CIPCCFG=5,1,1400,0,1,1460,400\r",
 			   "AT+CGDCONT=1,\"ip\",\"\"\r", 
 			   "AT+CSTT=\"internet.iot\"\r",  
 			   "AT+CIICR\r", 
