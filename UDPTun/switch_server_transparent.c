@@ -40,11 +40,11 @@ int main(int argc , char *argv[])
 	memset(&nbiot, 0, sizeof(nbiot));
     nbiot.sin_family = AF_INET;
     nbiot.sin_addr.s_addr = INADDR_ANY;
-    nbiot.sin_port = htons(4567);
+    nbiot.sin_port = htons(atoi(argv[1]));
 	memset(&host, 0, sizeof(host));
     host.sin_family = AF_INET;
     host.sin_addr.s_addr = INADDR_ANY;
-    host.sin_port = htons(5678);
+    host.sin_port = htons(atoi(argv[2]));
 	if (bind(fd_nbiot, (struct sockaddr*) &nbiot, sizeof(nbiot)) < 0) {
       perror("bind()");
       exit(1);

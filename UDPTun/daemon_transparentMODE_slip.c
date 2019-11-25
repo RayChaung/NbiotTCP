@@ -63,13 +63,13 @@ int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
         tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
         // disable IGNBRK for mismatched speed tests; otherwise receive break
         // as \000 chars
-        tty.c_iflag &= ~IGNBRK;         // disable break processing
+        tty.c_iflag |= IGNBRK;         // disable break processing
         //tty.c_lflag |= (ICANON);                // no signaling chars, no echo,
         tty.c_lflag = 0;                             //  canonical processing
         tty.c_oflag &= ~OPOST;			//No Output Processing
-        tty.c_cc[VMIN]  = (1 == isBlockingMode) ? 1 : 0;            // read doesn't block
+        tty.c_cc[VMIN]  = 1;            // read doesn't block
         //tty.c_cc[VMIN]  =  1 ;            // read doesn't block
-        tty.c_cc[VTIME] =  (1 == isBlockingMode)  ? 0 : waitTime;   // in unit of 100 milli-sec for set timeout value
+        tty.c_cc[VTIME] =  0;   // in unit of 100 milli-sec for set timeout value
 
         tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
 
@@ -77,8 +77,8 @@ int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
                                         // enable reading
         tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
         tty.c_cflag |= parity;
-        tty.c_cflag &= ~CSTOPB;
-        tty.c_cflag &= ~CRTSCTS;
+        tty.c_cflag &= ~CSTOPB;      //disable 2 stop bit
+        tty.c_cflag |= CRTSCTS;		 //enable hw flow control
 
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
         {
@@ -229,6 +229,8 @@ void usage(void) {
 
 int main(int argc, char *argv[]) {
   
+  //random
+  srand(1234);
   int tap_fd, option;
   int flags = IFF_TUN;
   char if_name[IFNAMSIZ] = "";
@@ -376,33 +378,6 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
-    if(FD_ISSET(tap_fd, &rd_set)) {
-      /* data from tun/tap: just read it and write it to the network */
-	  printf("read from tap interface\n");
-      memset(buffer, 0, BUFSIZE);
-	  memset(encode_buffer, 0, BUFSIZE*2);
-	  //usleep(100*1000);
-	  nread = cread(tap_fd, buffer, BUFSIZE);
-	  printf("tap : %d\n", nread);
-	  tap2net++;
-      do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
-      /* write packet to network*/
-      if(cliserv == CLIENT){
-		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);
-		nwrite = write(net_fd, encode_buffer, encode_len);
-		usleep(100*1000);
-	  }
-      else{
-		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);	
-		if((nwrite=sendto(net_fd, encode_buffer, encode_len, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
-			perror("sendto data");
-			exit(1);
-		}
-		
-	  }
-	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
-    }
-
     if(FD_ISSET(net_fd, &rd_set)) {
 	  /* Rpi read packet from nbiot*/
 	  memset(encode_buffer, 0, BUFSIZE*2);
@@ -416,7 +391,12 @@ int main(int argc, char *argv[]) {
 			printf("error when reading\n");
 
 		for(int i = 0; i < nread; i++)	printf("%02x",encode_buffer[i]); printf("\n");fflush(stdout);
-		memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
+		//random
+		if(rand() < (((double)RAND_MAX+1.0) * 0.95) )
+			memcpy(&prev_encode_buffer[prev_len], encode_buffer, nread);
+		else {
+			nread = 0;
+		}
 		//decode [prev_encode_buffer + encode_buffer]
 		foundEND = 0;
 		for(index = 0; index < nread+prev_len; index++){
@@ -473,7 +453,39 @@ int main(int argc, char *argv[]) {
 	  } 
 	  	  
 	}
-  }
+	
+	if(FD_ISSET(tap_fd, &rd_set)) {
+      /* data from tun/tap: just read it and write it to the network */
+	  printf("read from tap interface\n");
+      memset(buffer, 0, BUFSIZE);
+	  memset(encode_buffer, 0, BUFSIZE*2);
+	  //usleep(100*1000);
+	  nread = cread(tap_fd, buffer, BUFSIZE);
+	  printf("tap : %d\n", nread);
+	  tap2net++;
+      do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
+      /* write packet to network*/
+      if(cliserv == CLIENT){
+		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);
+		//random
+		if(rand() < (((double)RAND_MAX+1.0) * 0.95) ){
+			nwrite = write(net_fd, encode_buffer, encode_len);
+			usleep(100*1000);
+		}
+	  }
+      else{
+		slip_encode(buffer, nread, encode_buffer, BUFSIZE*2, &encode_len);	
+		if((nwrite=sendto(net_fd, encode_buffer, encode_len, 0, (const struct sockaddr *) &server, sizeof(server))) < 0){
+			perror("sendto data");
+			exit(1);
+		}
+		
+	  }
+	  do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
+    }
   
+  }
+	
+	
   return(0);
 }
