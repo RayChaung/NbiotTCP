@@ -25,9 +25,6 @@ int main(int argc , char *argv[])
 	uint16_t port[100]; 
 	int map_len = 0;
 	int nread = 0, nwrite = 0;
-	//debug
-	FILE* debugfd;
-	debugfd = fopen("/home/gemproject/tun0411081/switch.txt", "wb");
 	//
 	if ( (fd_nbiot = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("nbiot socket()");
@@ -116,8 +113,7 @@ int main(int argc , char *argv[])
 				map_len ++;
 			}
 			else{
-				fwrite(buffer, 1, nread, debugfd);
-				fflush(debugfd);
+				
 				//check packet length
 				if ( (buffer[2] * 256 + buffer[3])  != nread){
 					printf("from host: wrong ip packet length\n");
@@ -186,8 +182,7 @@ CHECK_ANO_FD:
 				map_len ++;
 			}
 			else{
-				fwrite(buffer, 1, nread, debugfd);
-				fflush(debugfd);
+				
 				//check packet length
 				if ( (buffer[2] * 256 + buffer[3])  != nread){
 					printf("from nbiot: wrong ip packet length: %d != %d \n", (buffer[2] * 256 + buffer[3]), nread);

@@ -41,40 +41,34 @@ char ATcommands[11][50] = {
 			   "+++192.168.0.1"};
 int command = 0;
 //"AT+CIPSTART=\"udp\",\"140.113.216.91\",8888\r", +CIPCCFG: 5,1,1024,1,0,1460,50
-int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
+int SetInterfaceAttribs(int fd, int speed, int parity)
 {
-  int isBlockingMode;
         struct termios tty;
-        
-        isBlockingMode = 0;
-        if(waitTime < 0 || waitTime > 255)
-			isBlockingMode = 1;
    
         memset (&tty, 0, sizeof tty);
         if (tcgetattr (fd, &tty) != 0) /* save current serial port settings */
         {
-   printf("__LINE__ = %d, error %s\n", __LINE__, strerror(errno));
-            return -1;
+			printf("__LINE__ = %d, error %s\n", __LINE__, strerror(errno));
+			return -1;
         }
 
         cfsetospeed (&tty, speed);
         cfsetispeed (&tty, speed);
 
-        tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
         // disable IGNBRK for mismatched speed tests; otherwise receive break
         // as \000 chars
         tty.c_iflag |= IGNBRK;         // disable break processing
-        //tty.c_lflag |= (ICANON);                // no signaling chars, no echo,
-        tty.c_lflag = 0;                             //  canonical processing
-        tty.c_oflag &= ~OPOST;			//No Output Processing
-        tty.c_cc[VMIN]  = 1;            // read doesn't block
-        //tty.c_cc[VMIN]  =  1 ;            // read doesn't block
-        tty.c_cc[VTIME] =  0;   // in unit of 100 milli-sec for set timeout value
+        //tty.c_lflag |= (ICANON);     // no signaling chars, no echo,
+        tty.c_lflag = 0;               //  canonical processing
+        tty.c_oflag &= ~OPOST;		   //No Output Processing
+        tty.c_cc[VMIN]  = 1;           // read doesn't block
+        //tty.c_cc[VMIN]  =  1 ;
+        tty.c_cc[VTIME] =  0;     	   // in unit of 100 milli-sec for set timeout value
 
         tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-
-        tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
-                                        // enable reading
+		
+		tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+        tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,  enable reading
         tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
         tty.c_cflag |= parity;
         tty.c_cflag &= ~CSTOPB;      //disable 2 stop bit
@@ -82,8 +76,8 @@ int SetInterfaceAttribs(int fd, int speed, int parity, int waitTime)
 
         if (tcsetattr (fd, TCSANOW, &tty) != 0)
         {
-                printf("__LINE__ = %d, error %s\n", __LINE__, strerror(errno));
-                return -1;
+            printf("__LINE__ = %d, error %s\n", __LINE__, strerror(errno));
+            return -1;
         }
         return 0;
 }/*SetInterfaceAttribs*/
@@ -320,7 +314,7 @@ int main(int argc, char *argv[]) {
     /* Client, try to connect to server */
 
     net_fd = open("/dev/ttyUSB2", O_RDWR | O_NOCTTY | O_NONBLOCK);
-	SetInterfaceAttribs(net_fd, B115200, 0, -1); /* set speed to 9600 bps, 8n1 (no parity), timeout 2 secs*/
+	SetInterfaceAttribs(net_fd, B115200, 0); /* set speed to 115200 bps, 8n1 (no parity), timeout 2 secs*/
 	if(0 > net_fd) 
 	{
 		perror("/dev/ttyUSB2"); 
@@ -384,7 +378,7 @@ int main(int argc, char *argv[]) {
 	  printf("read from net interface\n");
 	  if(cliserv == CLIENT){
 		//for mtu = 1200
-		usleep(50*1000);
+		//usleep(50*1000);
 		nread  = read(net_fd, encode_buffer, BUFSIZE*2);
 		printf("nread: %d, \t\t\tprev_len: %d\n",nread, prev_len);
 		if(nread == -1)
